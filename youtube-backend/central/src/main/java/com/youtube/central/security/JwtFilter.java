@@ -23,7 +23,7 @@ public class JwtFilter extends OncePerRequestFilter {
     // FrontEnd axios.post(url).body().header({Authorization: Bearer}
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // How we pass our JWT token ?
+
         // bearer 2u92dwdwkdebdjebd
         // 01234567(index, because actual token is JWT TOKEN but not Bearer ,it is just a best practices)
         // If token is invalid then we will not set the authentication and we will directly call doFilter
