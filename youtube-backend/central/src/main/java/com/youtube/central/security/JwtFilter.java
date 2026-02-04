@@ -24,17 +24,13 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        // bearer 2u92dwdwkdebdjebd
-        // 01234567(index, because actual token is JWT TOKEN but not Bearer ,it is just a best practices)
-        // If token is invalid then we will not set the authentication and we will directly call doFilter
-        // If token is valid then we will set the authentication and after that we will call do filter method and it will see authentication is set then it will pass the request
         String bToken = request.getHeader("Authorization");
         if(bToken != null && bToken.startsWith("Bearer")){
             String token = bToken.substring(7);
             // Validate token -> JWT UTIL
             boolean isValid = jwtUtil.isValidToken(token);
             if(isValid == false){
-                // If token was invalid then i am not setting any authentication and returning filterchain from here itself
+                // If token was invalid then not setting any authentication and returning filterchain from here itself
                 filterChain.doFilter(request, response);
                 return;
             }
