@@ -67,7 +67,7 @@ public class RabbitMQConfig {
     
 
  /*
-    NOTES:
+
      * for explaining @Bean
      * @Autowired
      * RestTemplate restTemplate;//spring boot will not able to provide the object for the restTemplate b'z RestTemplate doesn't have @Component,@Service, @Repository, @Controller,so you need to configure it.
