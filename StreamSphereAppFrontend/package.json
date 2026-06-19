@@ -11,8 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "fix-imports": "node ./scripts/fix-esm-imports.js",
-    "postinstall": "node ./scripts/fix-esm-imports.js"
+    "fix-imports": "node ./scripts/fix-esm-imports.cjs",
+    "postinstall": "node ./scripts/fix-esm-imports.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
