@@ -4,9 +4,10 @@
   <component name="MavenProjectsManager">
     <option name="originalFiles">
       <list>
-        <option value="$PROJECT_DIR$/youtube-backend/central/pom.xml" />
-        <option value="$PROJECT_DIR$/youtube-backend/video-service/pom.xml" />
-        <option value="$PROJECT_DIR$/youtube-backend/notification-api/pom.xml" />
+        <option value="$PROJECT_DIR$/central/pom.xml" />
+        <option value="$PROJECT_DIR$/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/video-service/pom.xml" />
+        <option value="$PROJECT_DIR$/notification-api/pom.xml" />
       </list>
     </option>
   </component>
