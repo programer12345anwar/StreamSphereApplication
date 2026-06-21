@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getAuthToken, validateToken } from "@/lib/api";
+import { getAuthToken, TOKEN_KEY, validateToken } from "@/lib/api";
 
 const AuthContext = createContext({
   user: null,
@@ -9,8 +9,7 @@ const AuthContext = createContext({
   initializing: true,
 });
 
-const USER_KEY = "yt_user";
-const TOKEN_KEY = "yt_token";
+const USER_KEY = "streamsphere_user";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);

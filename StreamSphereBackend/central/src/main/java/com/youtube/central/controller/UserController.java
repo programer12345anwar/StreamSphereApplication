@@ -27,8 +27,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<java.util.Map<String, String>> registerUser(@RequestBody AppUser user){
         userService.registerUser(user);
-        String credential=user.getEmail()+":"+user.getPassword();
-        String token = jwtUtil.generateToken(credential);
+        String token = jwtUtil.generateToken(user.getEmail());
         return ResponseEntity.ok(java.util.Map.of("token", token));
     }
 

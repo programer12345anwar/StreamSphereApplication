@@ -5,10 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { registerUser } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { BrandMark } from "@/components/BrandLogo";
+import { APP_NAME } from "@/lib/branding";
 
 const SignupPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -37,12 +41,21 @@ const SignupPage = () => {
 
     setLoading(true);
     try {
-      await registerUser({
+      const response = await registerUser({
         ...form,
         phoneNumber: parsedPhone,
       });
-      toast({ title: "Account created", description: "Please sign in." });
-      navigate("/login");
+      const token =
+        typeof response === "string" ? response : response?.token || response?.jwt || "";
+
+      if (token) {
+        login({ name: form.name, email: form.email, token });
+        toast({ title: "Account created", description: "Welcome to StreamSphere!" });
+        navigate("/", { replace: true });
+      } else {
+        toast({ title: "Account created", description: "Please sign in." });
+        navigate("/login");
+      }
     } catch (err) {
       toast({ title: "Registration failed", description: err.message, variant: "destructive" });
     } finally {
@@ -54,13 +67,9 @@ const SignupPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <svg viewBox="0 0 24 24" className="h-6 w-6 fill-primary-foreground">
-              <path d="M10 8l6 4-6 4V8z" />
-            </svg>
-          </div>
+          <BrandMark className="mx-auto h-10 w-10 rounded-xl" iconClassName="h-6 w-6" />
           <h1 className="mt-4 text-2xl font-semibold text-foreground">Create account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">to continue to YouTube</p>
+          <p className="mt-1 text-sm text-muted-foreground">to continue to {APP_NAME}</p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-3">

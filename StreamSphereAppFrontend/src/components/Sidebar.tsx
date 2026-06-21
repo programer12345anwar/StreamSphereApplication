@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Compass, Clock, ThumbsUp, Film, Flame } from "lucide-react";
+import { Home, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -8,14 +8,7 @@ interface SidebarProps {
 
 const mainLinks = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/explore", icon: Compass, label: "Explore" },
-  { to: "/trending", icon: Flame, label: "Trending" },
-];
-
-const libraryLinks = [
-  { to: "/history", icon: Clock, label: "History" },
-  { to: "/liked", icon: ThumbsUp, label: "Liked videos" },
-  { to: "/your-videos", icon: Film, label: "Your videos" },
+  { to: "/upload", icon: Upload, label: "Upload" },
 ];
 
 export function Sidebar({ collapsed = false }: SidebarProps) {
@@ -29,7 +22,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
   if (collapsed) {
     return (
-      <aside className="fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] w-[72px] flex-col items-center gap-1 overflow-y-auto bg-background py-2">
+      <aside className="fixed left-0 top-14 z-40 hidden h-[calc(100vh-3.5rem)] w-[72px] flex-col items-center gap-1 overflow-y-auto bg-background py-2 md:flex">
         {mainLinks.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -50,18 +43,9 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   }
 
   return (
-    <aside className="fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] w-56 flex-col overflow-y-auto bg-background px-2 py-3">
+    <aside className="fixed left-0 top-14 z-40 hidden h-[calc(100vh-3.5rem)] w-56 flex-col overflow-y-auto bg-background px-2 py-3 md:flex">
       <div className="space-y-1">
         {mainLinks.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} className={({ isActive }) => linkClass(isActive)}>
-            <Icon className="h-5 w-5 shrink-0" />
-            {label}
-          </NavLink>
-        ))}
-      </div>
-      <div className="my-3 border-t border-border" />
-      <div className="space-y-1">
-        {libraryLinks.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to} className={({ isActive }) => linkClass(isActive)}>
             <Icon className="h-5 w-5 shrink-0" />
             {label}

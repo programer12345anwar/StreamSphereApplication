@@ -1,5 +1,9 @@
-const API_GATEWAY_BASE = (import.meta.env.VITE_API_GATEWAY_URL || "http://localhost:8080").replace(/\/+$/, "");
-const TOKEN_KEY = "yt_token";
+const DEFAULT_DEV_API_GATEWAY_URL = "http://localhost:8080";
+const configuredGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL?.trim();
+const API_GATEWAY_BASE = (
+  configuredGatewayUrl || (import.meta.env.DEV ? DEFAULT_DEV_API_GATEWAY_URL : "")
+).replace(/\/+$/, "");
+const TOKEN_KEY = "streamsphere_token";
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -42,8 +46,47 @@ async function parseResponse(response) {
 }
 
 async function apiRequest(path, options = {}) {
-  const response = await fetch(`${API_GATEWAY_BASE}${path}`, options);
-  return parseResponse(response);
+  if (!API_GATEWAY_BASE) {
+    throw new Error("API gateway is not configured. Set VITE_API_GATEWAY_URL in your deployment environment.");
+  }
+
+  // Debug: expose the resolved API base in dev and log each outgoing request
+  if (import.meta.env.DEV) {
+    try {
+      // attach to window for quick inspection in DevTools console
+      // @ts-ignore - adding debug field for development only
+      window.STREAMSPHERE_API_GATEWAY_BASE = API_GATEWAY_BASE;
+      console.debug("[api] request =>", `${API_GATEWAY_BASE}${path}`, {
+        method: options.method || "GET",
+        headers: options.headers || {},
+      });
+    } catch (e) {
+      // ignore errors attaching to window in non-browser environments
+    }
+  }
+
+  try {
+    const response = await fetch(`${API_GATEWAY_BASE}${path}`, options);
+
+    if (import.meta.env.DEV) {
+      // Log response headers to help diagnose CORS / header issues
+      try {
+        const headersObj: Record<string, string> = {};
+        response.headers.forEach((v, k) => (headersObj[k] = v));
+        console.debug("[api] response headers <=", `${API_GATEWAY_BASE}${path}`, headersObj, "status", response.status);
+      } catch (e) {
+        // ignore header iteration errors
+      }
+    }
+
+    return parseResponse(response);
+  } catch (err) {
+    // Network or CORS-level failures reach here — log and rethrow for UI handling
+    if (import.meta.env.DEV) {
+      console.error("[api] request failed =>", `${API_GATEWAY_BASE}${path}`, err);
+    }
+    throw err;
+  }
 }
 
 export function getAuthToken() {

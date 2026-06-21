@@ -1,9 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Upload, Bell, Menu, User, LogOut, Plus } from "lucide-react";
+import { Search, Upload, Menu, User, LogOut, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -22,7 +23,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
@@ -30,25 +31,22 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gap-4 bg-background px-4">
-      {/* Left */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="text-foreground">
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between gap-2 bg-background px-3 sm:gap-4 sm:px-4">
+      <div className="flex items-center gap-2 sm:gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSidebar}
+          className="text-foreground"
+          aria-label="Toggle navigation"
+        >
           <Menu className="h-5 w-5" />
         </Button>
-        <Link to="/" className="flex items-center gap-1">
-          <div className="flex items-center">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-primary-foreground">
-                <path d="M10 8l6 4-6 4V8z" />
-              </svg>
-            </div>
-            <span className="ml-1 text-lg font-semibold text-foreground tracking-tight">YouTube</span>
-          </div>
+        <Link to="/" aria-label="StreamSphere home">
+          <BrandLogo labelClassName="hidden sm:inline" />
         </Link>
       </div>
 
-      {/* Center - Search */}
       <form onSubmit={handleSearch} className="flex max-w-2xl flex-1 items-center">
         <div className="flex flex-1">
           <Input
@@ -62,25 +60,28 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             variant="secondary"
             size="icon"
             className="rounded-l-none border border-input px-6"
+            aria-label="Search videos"
           >
             <Search className="h-4 w-4" />
           </Button>
         </div>
       </form>
 
-      {/* Right */}
       <div className="flex items-center gap-1">
         {isAuthenticated ? (
           <>
-            <Button variant="ghost" size="icon" onClick={() => navigate("/upload")} className="text-foreground">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/upload")}
+              className="text-foreground"
+              aria-label="Upload video"
+            >
               <Upload className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-foreground">
-              <Bell className="h-5 w-5" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full" aria-label="Open account menu">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {user?.name?.charAt(0)?.toUpperCase() || "U"}

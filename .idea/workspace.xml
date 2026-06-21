@@ -5,115 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc987ac7-f649-4067-9e33-d18f920e88fa" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/.gitattributes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/Dockerfile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/mvnw" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/mvnw.cmd" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/CentralApplication.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/configuration/CorsConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/configuration/OpenApiConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/configuration/RabbitMQConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/controller/ChannelController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/controller/SecurityController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/controller/UserController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/dto/CreateChannelRequestBody.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/dto/IsValidDTO.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/dto/NotificationMessage.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/dto/SecurityCredential.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/dto/UserCredentialDTO.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/dto/VideoDetailsDTO.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/exception/ChannelNotFound.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/exception/GlobalExceptionHandler.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/exception/UserNotFound.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/AppUser.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/Channel.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/PlayList.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/Tag.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/UserTagHistory.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/UserWatchHistory.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/models/Video.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/repository/AppUserRepo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/repository/ChannelRepo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/repository/TagRepo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/repository/VideoRepo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/security/JwtConfiguration.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/security/JwtFilter.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/security/JwtUtil.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/service/ChannelService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/service/RabbitMqService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/service/TagService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/service/UserService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/java/com/youtube/central/service/VideoService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/main/resources/application.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/test/java/com/youtube/central/CentralApplicationTests.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/central/src/test/java/com/youtube/central/service/UserServiceTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.gitattributes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/aws.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/encodings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/git_toolbox_blame.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/jarRepositories.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/material_theme_project_new.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/notification-api.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/.vscode/settings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/mvnw" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/mvnw.cmd" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/NotificationApiApplication.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/configuration/Config.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/configuration/CorsConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/configuration/OpenApiConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/configuration/RabbitMqConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/controller/CommonController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/dto/NotificationMessage.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/enums/NotificationType.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/factory/MailFactory.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/service/CommonUserService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/java/com/youtube/notification_api/service/MailService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/resources/application.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/resources/templates/create-channel-email.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/resources/templates/new-video-notification.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/resources/templates/subscriber-added.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/main/resources/templates/user-registration-email.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/notification-api/src/test/java/com/youtube/notification_api/NotificationApiApplicationTests.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/.gitattributes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/mvnw" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/mvnw.cmd" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/VideoServiceApplication.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/configuration/AppConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/configuration/CorsConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/configuration/OpenApiConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/controller/VideoController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/dto/GeneralMessage.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/dto/IsValidDTO.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/dto/SecurityCredential.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/dto/VideoDetail.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/dto/VideoDetailRequestBody.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/dto/VideoDetailsDTO.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/exception/InvalidFileType.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/security/JwtConfiguration.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/security/JwtFilter.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/security/JwtUtil.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/service/CentralApiConnectionService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/service/UploadService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/util/ApiTemplate.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/java/com/youtube/video_service/util/ApiTemplateImpl.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/main/resources/application.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/youtube-backend/video-service/src/test/java/com/youtube/video_service/VideoServiceApplicationTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/public/placeholder.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/App.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/Header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/Layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/Layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/NavLink.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/NavLink.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/components/Sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/contexts/AuthContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/contexts/AuthContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/lib/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/Index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/Index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/LoginPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/LoginPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/NotFound.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/NotFound.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/SignupPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/SignupPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/WatchPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/pages/WatchPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/src/test/example.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/src/test/example.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereAppFrontend/vite.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereAppFrontend/vitest.config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereBackend/central/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereBackend/central/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/StreamSphereBackend/central/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/StreamSphereBackend/central/src/main/resources/application.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -153,31 +65,31 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.VideoServiceApplication.executor": "Run",
-    "Docker.api-gateway/Dockerfile.executor": "Run",
-    "Docker.central/Dockerfile.executor": "Run",
-    "Docker.notification-api/Dockerfile.executor": "Run",
-    "Maven. [clean].executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/springboot-project2/microservices/youtube-clone",
-    "project.structure.last.edited": "SDKs",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "run.code.analysis.last.selected.profile": "pProject Default"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.VideoServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.api-gateway/Dockerfile.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.central/Dockerfile.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.notification-api/Dockerfile.executor&quot;: &quot;Run&quot;,
+    &quot;Maven. [clean].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/springboot-project2/microservices/StreamSphereApplication&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;
   }
-}]]></component>
+}</component>
   <component name="RunAnythingCache">
     <option name="myCommands">
       <command value="mvn clean" />
     </option>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Docker.api-gateway/Dockerfile">
     <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
       <deployment type="dockerfile">
         <settings />

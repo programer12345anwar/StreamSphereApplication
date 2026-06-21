@@ -45,6 +45,13 @@ const Index = () => {
     if (activeCategory === "Most Viewed") {
       return [...videos].sort((a, b) => (b.views || 0) - (a.views || 0));
     }
+    if (activeCategory === "Latest") {
+      return [...videos].sort((a, b) => {
+        const aTime = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+        const bTime = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+        return bTime - aTime;
+      });
+    }
     return videos;
   }, [videos, activeCategory]);
 

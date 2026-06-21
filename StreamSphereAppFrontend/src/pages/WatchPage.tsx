@@ -2,7 +2,8 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getVideoById, getVideoFeed } from "@/lib/api";
-import { Download, MoreHorizontal, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { Download, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -13,6 +14,7 @@ const WatchPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -60,6 +62,26 @@ const WatchPage = () => {
     return new Date(video.uploadedAt).toLocaleDateString();
   }, [video]);
 
+  const handleShare = async () => {
+    const shareData = {
+      title: video?.title || "StreamSphere video",
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast({ title: "Link copied" });
+      }
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        toast({ title: "Unable to share", variant: "destructive" });
+      }
+    }
+  };
+
   return (
     <Layout>
       {loading && <p className="p-6 text-sm text-muted-foreground">Loading video...</p>}
@@ -90,28 +112,41 @@ const WatchPage = () => {
               <div className="flex items-center gap-2">
                 <div className="flex items-center overflow-hidden rounded-full bg-secondary">
                   <button
-                    onClick={() => setLiked((v) => !v)}
+                    onClick={() => {
+                      setLiked((v) => !v);
+                      setDisliked(false);
+                    }}
                     className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-surface-hover ${
                       liked ? "text-primary" : "text-foreground"
                     }`}
+                    aria-pressed={liked}
                   >
                     <ThumbsUp className="h-4 w-4" />
                     Like
                   </button>
                   <div className="h-6 w-px bg-border" />
-                  <button className="px-4 py-2 text-foreground hover:bg-surface-hover">
+                  <button
+                    onClick={() => {
+                      setDisliked((v) => !v);
+                      setLiked(false);
+                    }}
+                    className={`px-4 py-2 hover:bg-surface-hover ${disliked ? "text-primary" : "text-foreground"}`}
+                    aria-label="Dislike"
+                    aria-pressed={disliked}
+                  >
                     <ThumbsDown className="h-4 w-4" />
                   </button>
                 </div>
-                <Button variant="secondary" className="gap-2 rounded-full">
+                <Button variant="secondary" className="gap-2 rounded-full" onClick={handleShare}>
                   <Share2 className="h-4 w-4" /> Share
                 </Button>
-                <Button variant="secondary" className="gap-2 rounded-full">
-                  <Download className="h-4 w-4" /> Download
-                </Button>
-                <Button variant="secondary" size="icon" className="rounded-full">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+                {video.videoLink && (
+                  <Button asChild variant="secondary" className="gap-2 rounded-full">
+                    <a href={video.videoLink} download>
+                      <Download className="h-4 w-4" /> Download
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -129,11 +164,20 @@ const WatchPage = () => {
             {suggested.map((item) => (
               <Link key={item.id} to={`/watch/${item.id}`} className="group flex gap-2">
                 <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  <div className="flex h-full items-center justify-center">
-                    <svg viewBox="0 0 24 24" className="h-8 w-8 fill-muted-foreground/30">
-                      <path d="M10 8l6 4-6 4V8z" />
-                    </svg>
-                  </div>
+                  {item.thumbnailLink || item.thumbnailUrl ? (
+                    <img
+                      src={item.thumbnailLink || item.thumbnailUrl}
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <svg viewBox="0 0 24 24" className="h-8 w-8 fill-muted-foreground/30">
+                        <path d="M10 8l6 4-6 4V8z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</p>

@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginUser } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { BrandMark } from "@/components/BrandLogo";
+import { APP_NAME } from "@/lib/branding";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -52,13 +54,9 @@ const LoginPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <svg viewBox="0 0 24 24" className="h-6 w-6 fill-primary-foreground">
-              <path d="M10 8l6 4-6 4V8z" />
-            </svg>
-          </div>
+          <BrandMark className="mx-auto h-10 w-10 rounded-xl" iconClassName="h-6 w-6" />
           <h1 className="mt-4 text-2xl font-semibold text-foreground">Sign in</h1>
-          <p className="mt-1 text-sm text-muted-foreground">to continue to YouTube</p>
+          <p className="mt-1 text-sm text-muted-foreground">to continue to {APP_NAME}</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

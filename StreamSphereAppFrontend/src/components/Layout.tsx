@@ -11,7 +11,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <Sidebar collapsed={sidebarCollapsed} />
       <main
         className={`pt-14 transition-all duration-200 ${
-          sidebarCollapsed ? "ml-[72px]" : "ml-56"
+          sidebarCollapsed ? "md:ml-[72px]" : "md:ml-56"
         }`}
       >
         {children}
