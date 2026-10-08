@@ -6,10 +6,10 @@ This project is a YouTube-like backend system built using modern Microservices A
 
 It simulates real-world video platform features such as:
 
-User & Channel Management
-Secure Authentication
-Video Upload Management
-Asynchronous Notifications
+User & Channel Management ||
+Secure Authentication || 
+Video Upload Management ||
+Asynchronous Notifications ||
 High Scalability & Decoupled Services
 
 Screenshots:
