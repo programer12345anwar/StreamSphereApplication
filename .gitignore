@@ -1,0 +1,23 @@
+# Secrets & local env
+.env
+*.env
+!.env.example
+
+# Build output
+target/
+build/
+node_modules/
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs & JVM crash logs
+*.log
+hs_err_pid*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+.git
+.idea
+.agents
+.codex
+.aws
+
+**/target
+**/node_modules
+**/dist
+**/.env
+
+frontend/.vite
+admin/.vite
+
+*.log
+hs_err_pid*.log

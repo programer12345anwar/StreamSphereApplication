@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0f0f0f"/>
+  <circle cx="216" cy="315" r="94" fill="#dc2626"/>
+  <path d="M190 260v110l88-55-88-55Z" fill="#fff"/>
+  <text x="350" y="300" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="82" font-weight="700">StreamSphere</text>
+  <text x="354" y="365" fill="#b8b8b8" font-family="Inter, Arial, sans-serif" font-size="34">Upload, watch, and discover videos.</text>
+</svg>

@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: service-registry
+
+server:
+  port: ${PORT:${SERVER_PORT:8761}}
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    enable-self-preservation: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_EXPOSE:health,info}
+  endpoint:
+    health:
+      probes:
+        enabled: true
