@@ -1,4 +1,4 @@
-🎬 YouTube Clone – Microservices Backend Architecture
+StreamSphereApplication – Microservices Backend Architecture
 
 📌 Overview
 
@@ -79,15 +79,15 @@ Deployment	Docker for containerization of RabbitMQ
 
 🚀 Features
 
-✅ JWT based Authentication
-✅ Centralized User Management
-✅ Decoupled Upload Processing
-✅ Event-Driven Notifications
-✅ Secure Microservice communication
-✅ Horizontal scalability
-✅ Cloud video storage
-✅ Stateless backend design
-✅ Clean layered architecture
+JWT based Authentication
+Centralized User Management
+Decoupled Upload Processing
+Event-Driven Notifications
+Secure Microservice communication
+Horizontal scalability
+Cloud video storage
+Stateless backend design
+Clean layered architecture
 
 ⚙️ How to Run
 1️⃣ Clone Repository
@@ -151,17 +151,6 @@ Stateless Sessions
 Role-based access
 
 Inter-service authorization
-
-💡 Learning Outcomes
-
-✅ How microservices communicate
-✅ JWT implementation
-✅ Event-driven systems
-✅ Queue-based processing
-✅ Multi-database architecture
-✅ Cloud integration
-✅ Secure API design
-✅ Production-style backend setup
 
 👨‍💻 Author
 
