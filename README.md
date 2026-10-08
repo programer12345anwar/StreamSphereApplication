@@ -6,11 +6,11 @@ This project is a YouTube-like backend system built using modern Microservices A
 
 It simulates real-world video platform features such as:
 
-✅ User & Channel Management
-✅ Secure Authentication
-✅ Video Upload Management
-✅ Asynchronous Notifications
-✅ High Scalability & Decoupled Services
+User & Channel Management
+Secure Authentication
+Video Upload Management
+Asynchronous Notifications
+High Scalability & Decoupled Services
 
 Screenshots:
 <img width="1920" height="1538" alt="screencapture-localhost-8080-swagger-ui-index-html-2025-12-08-01_23_23" src="https://github.com/user-attachments/assets/fafe53b5-6d75-4baa-8c80-399239272273" />
