@@ -1,227 +1,52 @@
-name: streamsphere
-
 services:
+  db:
+    image: postgres:17.5
+    container_name: shared-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-main_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - shared-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: shared-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - shared-network
+
   redis:
     image: redis:7-alpine
-    container_name: streamsphere-redis
-    command: ["redis-server", "--appendonly", "yes"]
+    container_name: shared-redis
     ports:
       - "6379:6379"
     volumes:
-      - streamsphere-redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    mem_limit: 256m
-    cpus: 0.50
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - shared-network
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: streamsphere-postgres
-    environment:
-      POSTGRES_DB: stream_sphere_application_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: streamsphere
-    ports:
-      - "5433:5432"
-    volumes:
-      - streamsphere-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d stream_sphere_application_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 8
-    mem_limit: 512m
-    cpus: 0.75
-
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: streamsphere-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "15673:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 15s
-      timeout: 15s
-      retries: 20
-      start_period: 40s
-    mem_limit: 768m
-    cpus: 0.50
-
-  service-registry:
-    build:
-      context: .
-      dockerfile: service-registry/Dockerfile
-    image: streamsphere-service-registry:local
-    container_name: streamsphere-service-registry
-    init: true
-    environment:
-      PORT: 8761
-      SERVER_PORT: 8761
-      JAVA_OPTS: -Xms64m -Xmx256m -XX:+UseSerialGC
-    ports:
-      - "8761:8761"
-    restart: on-failure
-    mem_limit: 384m
-    cpus: 0.50
-
-  central:
-    build:
-      context: .
-      dockerfile: central/Dockerfile
-    image: streamsphere-central:local
-    container_name: streamsphere-central
-    env_file:
-      - ./central/.env
-    environment:
-      PORT: 8084
-      SERVER_PORT: 8084
-      SPRING_PROFILES_ACTIVE: local
-      APP_DATA_SEED: true
-      DB_URL: jdbc:postgresql://postgres:5432/stream_sphere_application_db
-      DB_USERNAME: postgres
-      DB_PASSWORD: streamsphere
-      JPA_DDL_AUTO: update
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
-      CORS_ENABLED: false
-      CORS_ALLOWED_ORIGINS: "*"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    ports:
-      - "8084:8084"
-    restart: on-failure
-    mem_limit: 512m
-    cpus: 0.75
-
-  notification-api:
-    build:
-      context: .
-      dockerfile: notification-api/Dockerfile
-    image: streamsphere-notification-api:local
-    container_name: streamsphere-notification-api
-    env_file:
-      - ./notification-api/.env
-    environment:
-      PORT: 8082
-      SERVER_PORT: 8082
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
-      CORS_ENABLED: false
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174,http://localhost:8080,http://localhost:8082,http://localhost:8083,http://localhost:8084,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8080,http://127.0.0.1:8082,http://127.0.0.1:8083,http://127.0.0.1:8084
-      JAVA_OPTS: -Xms64m -Xmx256m -XX:+UseSerialGC
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    ports:
-      - "8082:8082"
-    restart: on-failure
-    mem_limit: 384m
-    cpus: 0.50
-
-  video-service:
-    build:
-      context: .
-      dockerfile: video-service/Dockerfile
-    image: streamsphere-video-service:local
-    container_name: streamsphere-video-service
-    env_file:
-      - ./video-service/.env
-    environment:
-      PORT: 8083
-      SERVER_PORT: 8083
-      CENTRAL_API_URL: http://central:8084/api/v1/central
-      CORS_ENABLED: false
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174,http://localhost:8080,http://localhost:8082,http://localhost:8083,http://localhost:8084,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8080,http://127.0.0.1:8082,http://127.0.0.1:8083,http://127.0.0.1:8084
-      JAVA_OPTS: -Xms64m -Xmx256m -XX:+UseSerialGC
-    depends_on:
-      central:
-        condition: service_healthy
-    ports:
-      - "8083:8083"
-    restart: on-failure
-    mem_limit: 384m
-    cpus: 0.50
-
-  api-gateway:
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-    image: streamsphere-api-gateway:local
-    container_name: streamsphere-api-gateway
-    environment:
-      PORT: 8080
-      SERVER_PORT: 8080
-      CENTRAL_SERVICE_URL: http://central:8084
-      VIDEO_SERVICE_URL: http://video-service:8083
-      NOTIFICATION_SERVICE_URL: http://notification-api:8082
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174,http://localhost:8080,http://localhost:8082,http://localhost:8083,http://localhost:8084,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8080,http://127.0.0.1:8082,http://127.0.0.1:8083,http://127.0.0.1:8084
-      JAVA_OPTS: -Xms64m -Xmx256m -XX:+UseSerialGC
-    depends_on:
-      central:
-        condition: service_healthy
-      video-service:
-        condition: service_started
-      notification-api:
-        condition: service_started
-    ports:
-      - "8080:8080"
-    restart: on-failure
-    mem_limit: 384m
-    cpus: 0.50
-
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_GATEWAY_URL: http://localhost:8080
-    image: streamsphere-frontend:local
-    container_name: streamsphere-frontend
-    init: true
-    depends_on:
-      api-gateway:
-        condition: service_started
-    ports:
-      - "5173:80"
-    restart: on-failure
-    mem_limit: 128m
-    cpus: 0.25
-
-  admin:
-    build:
-      context: ../admin
-      dockerfile: Dockerfile
-      args:
-        VITE_API_GATEWAY_URL: http://localhost:8080
-    image: streamsphere-admin:local
-    container_name: streamsphere-admin
-    init: true
-    depends_on:
-      api-gateway:
-        condition: service_started
-    ports:
-      - "5174:80"
-    restart: on-failure
-    mem_limit: 128m
-    cpus: 0.25
+networks:
+  shared-network:
+    name: postgres-common-network
+    driver: bridge
 
 volumes:
-  streamsphere-postgres-data:
-  streamsphere-redis-data:
+  postgres_data:
+  pgadmin_data:
+  redis_data:

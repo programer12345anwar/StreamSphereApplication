@@ -19,14 +19,19 @@ public class CorsConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        
+
         String[] origins = Arrays.stream(StringUtils.commaDelimitedListToStringArray(allowedOrigins))
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .toArray(String[]::new);
 
-        corsConfig.addAllowedOriginPattern("*");
-        corsConfig.setAllowCredentials(true);
+        if (origins.length > 0) {
+            corsConfig.setAllowedOrigins(Arrays.asList(origins));
+            corsConfig.setAllowCredentials(true);
+        } else {
+            corsConfig.addAllowedOriginPattern("*");
+            corsConfig.setAllowCredentials(false);
+        }
 
         corsConfig.addAllowedMethod("*");
         corsConfig.addAllowedHeader("*");
