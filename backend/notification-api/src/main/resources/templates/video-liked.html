@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Liked</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+    <div style="background: #ffffff; padding: 20px; border-radius: 8px;">
+        <h2 style="color: #333333;">Someone liked your video!</h2>
+        <p>Hello,</p>
+        <p>Great news! Your video <strong th:text="${videoName}">Video</strong> just received a new like.</p>
+        <a th:href="${dashboardUrl}" style="display: inline-block; padding: 10px 20px; background-color: #ff0000; color: #ffffff; text-decoration: none; border-radius: 5px; margin-top: 20px;">View Dashboard</a>
+    </div>
+</body>
+</html>

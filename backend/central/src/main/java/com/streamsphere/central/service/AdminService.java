@@ -23,11 +23,13 @@ public class AdminService {
     private final AppUserRepo appUserRepo;
     private final VideoRepo videoRepo;
     private final ChannelRepo channelRepo;
+    private final com.streamsphere.central.repository.VideoReportRepo videoReportRepo;
 
-    public AdminService(AppUserRepo appUserRepo, VideoRepo videoRepo, ChannelRepo channelRepo) {
+    public AdminService(AppUserRepo appUserRepo, VideoRepo videoRepo, ChannelRepo channelRepo, com.streamsphere.central.repository.VideoReportRepo videoReportRepo) {
         this.appUserRepo = appUserRepo;
         this.videoRepo = videoRepo;
         this.channelRepo = channelRepo;
+        this.videoReportRepo = videoReportRepo;
     }
 
     /** Global totals for the admin dashboard (live values, not hard-coded). */
@@ -72,6 +74,18 @@ public class AdminService {
         return channelRepo.findAll(PageRequest.of(page, size)).map(AdminService::toAdminChannelDTO);
     }
 
+    public Page<com.streamsphere.central.dto.response.AdminReportDTO> getReports(int page, int size) {
+        return videoReportRepo.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size))
+                .map(AdminService::toAdminReportDTO);
+    }
+
+    public void updateReportStatus(int reportId, String status) {
+        com.streamsphere.central.entity.VideoReport report = videoReportRepo.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("Report not found"));
+        report.setStatus(status);
+        videoReportRepo.save(report);
+    }
+
     private static AdminUserDTO toAdminUserDTO(AppUser u) {
         return new AdminUserDTO(u.getId(), u.getName(), u.getEmail(), u.getPhoneNumber(), u.getRole(), u.getCreatedAt());
     }
@@ -103,6 +117,18 @@ public class AdminService {
                 owner == null ? null : owner.getEmail(),
                 c.getCreatedAt(),
                 c.getUpdatedAt()
+        );
+    }
+
+    private static com.streamsphere.central.dto.response.AdminReportDTO toAdminReportDTO(com.streamsphere.central.entity.VideoReport r) {
+        return new com.streamsphere.central.dto.response.AdminReportDTO(
+                r.getId(),
+                r.getVideo().getId(),
+                r.getVideo().getName(),
+                r.getUser().getEmail(),
+                r.getReason(),
+                r.getStatus(),
+                r.getCreatedAt()
         );
     }
 }

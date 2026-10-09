@@ -1,12 +1,14 @@
 import { Layout } from "@/components/Layout";
 import { VideoCard } from "@/components/VideoCard";
-import { getVideoFeed } from "@/lib/api";
+import { getVideoFeed, getTrendingFeed, getSubscriptionsFeed } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const categories = ["All", "Latest", "Most Viewed"];
+const categories = ["All", "Trending", "Subscriptions"];
 
 const Index = () => {
+  const { user } = useAuth();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -19,7 +21,20 @@ const Index = () => {
       setLoading(true);
       setError("");
       try {
-        const feed = await getVideoFeed(40);
+        let feed = [];
+        if (activeCategory === "Trending") {
+          feed = await getTrendingFeed(40);
+        } else if (activeCategory === "Subscriptions") {
+          if (!user) {
+            setError("Please log in to see subscriptions.");
+            setLoading(false);
+            return;
+          }
+          feed = await getSubscriptionsFeed(user.id, 40);
+        } else {
+          feed = await getVideoFeed(40);
+        }
+        
         if (mounted) {
           setVideos(Array.isArray(feed) ? feed : []);
         }
@@ -39,21 +54,11 @@ const Index = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [activeCategory, user]);
 
   const displayVideos = useMemo(() => {
-    if (activeCategory === "Most Viewed") {
-      return [...videos].sort((a, b) => (b.views || 0) - (a.views || 0));
-    }
-    if (activeCategory === "Latest") {
-      return [...videos].sort((a, b) => {
-        const aTime = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-        const bTime = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-        return bTime - aTime;
-      });
-    }
     return videos;
-  }, [videos, activeCategory]);
+  }, [videos]);
 
   return (
     <Layout>

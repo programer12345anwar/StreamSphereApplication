@@ -14,6 +14,9 @@ public class VideoDetailsDTO {
     LocalDateTime updatedAt;
     String videoLink;
     List<String> tags;
+    String status;
+    String visibility;
+    String thumbnailLink;
 }
 
 

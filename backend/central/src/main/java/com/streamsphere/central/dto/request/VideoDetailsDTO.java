@@ -16,7 +16,11 @@ public class VideoDetailsDTO {
     private LocalDateTime updatedAt;
     @jakarta.validation.constraints.NotBlank
     private String videoLink;
+    private String thumbnailLink;
     private List<String> tags;
+    private String status;
+    private String visibility;
+    private boolean isShort;
 }
 
 

@@ -40,10 +40,34 @@ public class ChannelController {
         channelService.addSubscriber(userId, channelId);
     }
 
+    @PutMapping("/{channelId}/unsubscribe")
+    public void removeSubscriber(@PathVariable(name = "channelId") UUID channelId,
+                                 @RequestParam(name = "userId") UUID userId){
+        channelService.removeSubscriber(userId, channelId);
+    }
+
+    @GetMapping("/{channelId}/check-subscription")
+    public boolean checkSubscription(@PathVariable(name = "channelId") UUID channelId,
+                                     @RequestParam(name = "userId") UUID userId) {
+        return channelService.isUserSubscribed(userId, channelId);
+    }
+
     @PostMapping("/{channelId}/video/upload")
     public void saveVideoDetails(@Valid @RequestBody VideoDetailsDTO videoDetailsDTO,
                                  @PathVariable(name = "channelId") UUID channelId){
         videoService.saveVideoDetails(channelId, videoDetailsDTO);
+    }
+
+    @PutMapping("/video/{videoId}/status")
+    public void updateVideoStatus(@PathVariable(name = "videoId") String videoId,
+                                  @RequestParam(name = "status") String status) {
+        videoService.updateVideoStatus(videoId, status);
+    }
+
+    @PutMapping("/video/{videoId}/details")
+    public void updateVideoDetails(@PathVariable(name = "videoId") String videoId,
+                                   @RequestBody VideoDetailsDTO videoDetailsDTO) {
+        videoService.updateVideoDetails(videoId, videoDetailsDTO);
     }
 
     @GetMapping("/popular")
@@ -56,6 +80,20 @@ public class ChannelController {
     @GetMapping("/channelWithTag")
     public List<ChannelSummaryDTO> getChannelByTag(@RequestParam(name = "tag") String tag){
         return channelService.getChannels(tag).stream()
+                .map(this::toChannelSummaryDTO)
+                .toList();
+    }
+
+    @GetMapping("/search")
+    public List<ChannelSummaryDTO> searchChannels(@RequestParam(name = "q") String query) {
+        return channelService.searchChannels(query).stream()
+                .map(this::toChannelSummaryDTO)
+                .toList();
+    }
+
+    @GetMapping("/subscribed")
+    public List<ChannelSummaryDTO> getSubscribedChannels(@RequestParam(name = "userId") UUID userId) {
+        return channelService.getSubscribedChannels(userId).stream()
                 .map(this::toChannelSummaryDTO)
                 .toList();
     }

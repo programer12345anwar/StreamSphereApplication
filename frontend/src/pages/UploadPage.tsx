@@ -15,7 +15,7 @@ const UploadPage = () => {
   const navigate = useNavigate();
   const fileRef = useRef(null);
   const [videoFile, setVideoFile] = useState(null);
-  const [form, setForm] = useState({ name: "", description: "", tags: "" });
+  const [form, setForm] = useState({ name: "", description: "", tags: "", isShort: false });
   const [loading, setLoading] = useState(false);
   const [channel, setChannel] = useState(null);
   const [channelLoading, setChannelLoading] = useState(true);
@@ -83,6 +83,7 @@ const UploadPage = () => {
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
+        isShort: form.isShort,
       });
       toast({ title: "Video uploaded successfully" });
       navigate("/");
@@ -177,6 +178,19 @@ const UploadPage = () => {
                 onChange={(e) => set("tags", e.target.value)}
                 placeholder="springboot, java, tutorial (comma separated)"
               />
+            </div>
+            
+            <div className="flex items-center space-x-2 border border-border rounded-lg p-4 bg-muted/30">
+              <input
+                type="checkbox"
+                id="isShort"
+                checked={form.isShort}
+                onChange={(e) => set("isShort", e.target.checked)}
+                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+              />
+              <label htmlFor="isShort" className="text-sm font-medium text-foreground cursor-pointer select-none">
+                This is a Short video (Vertical format)
+              </label>
             </div>
 
             <div className="flex justify-end gap-3">

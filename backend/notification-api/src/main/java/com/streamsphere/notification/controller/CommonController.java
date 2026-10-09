@@ -51,14 +51,21 @@ public class CommonController {
             } else if (message.getType().equals(NotificationType.new_video.toString())) {
                 log.info("Got type of message as new_video");
                 commonUserService.notifyNewVideoUploadedToSubscriber(message);
+            } else if (message.getType().equals(NotificationType.video_liked.toString())) {
+                log.info("Got type of message as video_liked");
+                commonUserService.sendVideoLikedMail(message);
+            } else if (message.getType().equals(NotificationType.new_comment.toString())) {
+                log.info("Got type of message as new_comment");
+                commonUserService.sendNewCommentMail(message);
+            } else if (message.getType().equals(NotificationType.video_processed.toString())) {
+                log.info("Got type of message as video_processed");
+                commonUserService.sendVideoProcessedMail(message);
             } else {
                 log.warn("Unknown notification type: {}", message.getType());
             }
         } catch (Exception e) {
-            // Rethrow so the container can retry and, on exhaustion, dead-letter the message
-            // (spring.rabbitmq.listener.simple.default-requeue-rejected=false).
-            log.error("Error while processing notification: {}", e.getMessage());
-            throw e;
+            log.error("Failed to send notification email (likely due to missing SMTP config). Gracefully logging instead of crashing: {}", e.getMessage());
+            // Intentionally not re-throwing to avoid infinite RabbitMQ requeue loops without DLQ
         }
     }
 

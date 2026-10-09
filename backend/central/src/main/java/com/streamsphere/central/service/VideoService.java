@@ -39,7 +39,7 @@ public class VideoService {
          videoRepo.save(video);
     }
 
-    @CacheEvict(value = {"video:feed", "video:byId"}, allEntries = true)
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId"}, allEntries = true)
     public void saveVideoDetails(UUID channelId,
                                  VideoDetailsDTO videoDetailsDTO){
         // We need to get the channel object
@@ -58,24 +58,83 @@ public class VideoService {
         video.setUpdatedAt(videoDetailsDTO.getUpdatedAt());
         video.setUploadDateTime(videoDetailsDTO.getUploadDateTime());
         video.setChannel(channel);
+        
+        if (videoDetailsDTO.getStatus() != null) {
+            video.setStatus(com.streamsphere.central.enums.VideoStatus.valueOf(videoDetailsDTO.getStatus()));
+        }
+        if (videoDetailsDTO.getVisibility() != null) {
+            video.setVisibility(com.streamsphere.central.enums.VideoVisibility.valueOf(videoDetailsDTO.getVisibility()));
+        }
 
         List<String> tags = videoDetailsDTO.getTags();
         List<Tag> dbTagList = tagService.getAllTagsFromSystem(tags == null ? List.of() : tags);
         video.setTags(dbTagList);
+        video.setShort(videoDetailsDTO.isShort());
         // save these video details inside video table.
         this.saveVideo(video);
         this.videoLink = videoDetailsDTO.getVideoLink();
-        // we need to update list videos of channel
+        
+        // Only notify if PUBLISHED (or we can just skip for now since it's PROCESSING initially)
+        if (video.getStatus() == com.streamsphere.central.enums.VideoStatus.PUBLISHED) {
+            if (channel.getSubscribers() != null && !channel.getSubscribers().isEmpty()) {
+                this.notifySubscibers(channel.getSubscribers());
+            }
+        }
+        
+        // update channel list
         if (channel.getVideos() == null) {
             channel.setVideos(new java.util.ArrayList<>());
         }
-        channel.getVideos().add(video);
-        channel.setUpdatedAt(java.time.LocalDateTime.now());
-        channelService.updateChannel(channel);
-        // We need to notify all the subscribers that hey a new uploaded over the channel
-        if (channel.getSubscribers() != null && !channel.getSubscribers().isEmpty()) {
-            this.notifySubscibers(channel.getSubscribers());
+        boolean exists = channel.getVideos().stream().anyMatch(v -> v.getId().equals(video.getId()));
+        if (!exists) {
+            channel.getVideos().add(video);
+            channel.setUpdatedAt(java.time.LocalDateTime.now());
+            channelService.updateChannel(channel);
         }
+    }
+    
+    @Transactional
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
+    public void updateVideoStatus(String videoId, String statusStr) {
+        Video video = videoRepo.findById(videoId).orElseThrow(() -> new IllegalArgumentException("Video not found"));
+        com.streamsphere.central.enums.VideoStatus status = com.streamsphere.central.enums.VideoStatus.valueOf(statusStr);
+        video.setStatus(status);
+        videoRepo.save(video);
+        
+        if (status == com.streamsphere.central.enums.VideoStatus.PUBLISHED) {
+            Channel channel = video.getChannel();
+            if (channel != null) {
+                // Notify the creator that the video is processed
+                NotificationMessage msg = new NotificationMessage();
+                msg.setEmail(channel.getUser().getEmail());
+                msg.setType("video_processed");
+                msg.setName(video.getId()); // Using ID to construct URL in notification-api
+                rabbitMqService.insertMessageToQueue(msg);
+
+                // Notify all subscribers
+                if (channel.getSubscribers() != null && !channel.getSubscribers().isEmpty()) {
+                    this.notifySubscibers(channel.getSubscribers());
+                }
+            }
+        }
+    }
+
+    @Transactional
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
+    public void updateVideoDetails(String videoId, VideoDetailsDTO videoDetailsDTO) {
+        Video video = videoRepo.findById(videoId).orElseThrow(() -> new IllegalArgumentException("Video not found"));
+        
+        if (videoDetailsDTO.getThumbnailLink() != null) {
+            video.setThumbnailLink(videoDetailsDTO.getThumbnailLink());
+        }
+        if (videoDetailsDTO.getName() != null) {
+            video.setName(videoDetailsDTO.getName());
+        }
+        if (videoDetailsDTO.getDescription() != null) {
+            video.setDescription(videoDetailsDTO.getDescription());
+        }
+        
+        videoRepo.save(video);
     }
 
     public void notifySubscibers(List<AppUser> subscribers){
@@ -90,11 +149,45 @@ public class VideoService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "video:feed", key = "#root.args[0]")
+    @Cacheable(value = "video:feed", key = "#limit")
     public List<VideoFeedItemDTO> getLatestVideos(int limit) {
-        List<Video> videos = videoRepo.findAllByOrderByUploadDateTimeDesc();
-        return videos.stream()
-                .limit(Math.max(limit, 0))
+        org.springframework.data.domain.Page<Video> page = videoRepo.findFeedVideos(org.springframework.data.domain.PageRequest.of(0, Math.max(limit, 1)));
+        return page.stream()
+                .map(this::toVideoFeedItemDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "video:trending", key = "#limit")
+    public List<VideoFeedItemDTO> getTrendingVideos(int limit) {
+        java.time.LocalDateTime lastWeek = java.time.LocalDateTime.now().minusDays(7);
+        org.springframework.data.domain.Page<Video> page = videoRepo.findTrendingVideos(lastWeek, org.springframework.data.domain.PageRequest.of(0, Math.max(limit, 1)));
+        return page.stream()
+                .map(this::toVideoFeedItemDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<VideoFeedItemDTO> searchVideos(String query, int limit) {
+        org.springframework.data.domain.Page<Video> page = videoRepo.searchVideos(query, org.springframework.data.domain.PageRequest.of(0, Math.max(limit, 1)));
+        return page.stream()
+                .map(this::toVideoFeedItemDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<VideoFeedItemDTO> getSubscribedVideos(UUID userId, int limit) {
+        org.springframework.data.domain.Page<Video> page = videoRepo.findSubscribedVideos(userId, org.springframework.data.domain.PageRequest.of(0, Math.max(limit, 1)));
+        return page.stream()
+                .map(this::toVideoFeedItemDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "video:shorts", key = "#limit")
+    public List<VideoFeedItemDTO> getShorts(int limit) {
+        org.springframework.data.domain.Page<Video> page = videoRepo.findShorts(org.springframework.data.domain.PageRequest.of(0, Math.max(limit, 1)));
+        return page.stream()
                 .map(this::toVideoFeedItemDTO)
                 .collect(Collectors.toList());
     }
@@ -109,6 +202,9 @@ public class VideoService {
 
     private VideoFeedItemDTO toVideoFeedItemDTO(Video video) {
         Channel channel = video.getChannel();
+        List<String> tags = video.getTags() == null
+                ? List.of()
+                : video.getTags().stream().map(Tag::getName).toList();
         return new VideoFeedItemDTO(
                 video.getId(),
                 video.getName(),
@@ -118,7 +214,9 @@ public class VideoService {
                 video.getViews(),
                 video.getUploadDateTime(),
                 channel == null ? null : channel.getId(),
-                channel == null ? null : channel.getName()
+                channel == null ? null : channel.getName(),
+                tags,
+                video.isShort()
         );
     }
 
@@ -138,9 +236,8 @@ public class VideoService {
                 video.getUploadDateTime(),
                 channel == null ? null : channel.getId(),
                 channel == null ? null : channel.getName(),
-                tags
+                tags,
+                video.isShort()
         );
     }
 }
-
-

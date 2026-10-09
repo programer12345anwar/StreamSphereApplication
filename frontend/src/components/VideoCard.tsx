@@ -10,6 +10,7 @@ interface VideoCardModel {
   thumbnailLink?: string;
   thumbnailUrl?: string;
   duration?: string;
+  tags?: string[];
 }
 
 interface VideoCardProps {
@@ -64,6 +65,15 @@ export function VideoCard({ video }: VideoCardProps) {
           <p className="text-xs text-muted-foreground">
             {formatViews(video.views)} • {uploadedAt}
           </p>
+          {video.tags && video.tags.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {video.tags.slice(0, 3).map((tag, i) => (
+                <span key={i} className="inline-block rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Link>

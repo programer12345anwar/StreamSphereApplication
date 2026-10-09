@@ -1,4 +1,4 @@
-const DEFAULT_DEV_API_GATEWAY_URL = "http://localhost:8080";
+const DEFAULT_DEV_API_GATEWAY_URL = typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080";
 const configuredGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL?.trim();
 const API_GATEWAY_BASE = (
   configuredGatewayUrl || (import.meta.env.DEV ? DEFAULT_DEV_API_GATEWAY_URL : "")

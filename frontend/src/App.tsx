@@ -12,6 +12,8 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import UploadPage from "./pages/UploadPage";
 import CreateChannelPage from "./pages/CreateChannelPage";
+import PlaylistsPage from "./pages/PlaylistsPage";
+import ShortsPage from "./pages/ShortsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/watch/:videoId" element={<WatchPage />} />
+            <Route path="/shorts" element={<ShortsPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
@@ -42,6 +45,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CreateChannelPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/playlists"
+              element={
+                <ProtectedRoute>
+                  <PlaylistsPage />
                 </ProtectedRoute>
               }
             />

@@ -76,5 +76,26 @@ public class VideoCatalogController {
         }
         return ResponseEntity.ok(video);
     }
+    @GetMapping("/trending")
+    public List<VideoFeedItemDTO> getTrendingFeed(@RequestParam(name = "limit", defaultValue = "30") int limit) {
+        return videoService.getTrendingVideos(limit);
+    }
+
+    @GetMapping("/search")
+    public List<VideoFeedItemDTO> searchVideos(@RequestParam(name = "q") String query,
+                                               @RequestParam(name = "limit", defaultValue = "30") int limit) {
+        return videoService.searchVideos(query, limit);
+    }
+
+    @GetMapping("/subscriptions")
+    public List<VideoFeedItemDTO> getSubscriptionsFeed(@RequestParam(name = "userId") java.util.UUID userId,
+                                                       @RequestParam(name = "limit", defaultValue = "30") int limit) {
+        return videoService.getSubscribedVideos(userId, limit);
+    }
+
+    @GetMapping("/shorts")
+    public List<VideoFeedItemDTO> getShorts(@RequestParam(name = "limit", defaultValue = "10") int limit) {
+        return videoService.getShorts(limit);
+    }
 }
 

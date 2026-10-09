@@ -25,5 +25,6 @@ public class UserWatchHistory {
     private int count;
     private boolean isLiked;
     private LocalDateTime lastWatched;
+    private int resumeTime;
 }
 

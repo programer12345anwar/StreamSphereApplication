@@ -3,7 +3,10 @@ public enum NotificationType{
     user_registration,
     subscriber_added,
     create_channel,
-    new_video
+    new_video,
+    video_liked,
+    new_comment,
+    video_processed
 }
 
 /*

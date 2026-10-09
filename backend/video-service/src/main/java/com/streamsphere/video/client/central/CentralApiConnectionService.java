@@ -1,6 +1,7 @@
 package com.streamsphere.video.client.central;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.modelmapper.ModelMapper;
@@ -43,7 +44,20 @@ public class CentralApiConnectionService {
         } else {
             log.info("Response over central API connection: " + resp.getClass());
         }
+    }
 
+    public void updateVideoStatus(String videoId, String status) {
+        log.info("Updating video status for {} to {}", videoId, status);
+        String endPoint = "/channel/video/" + videoId + "/status";
+        Map<String, String> params = new HashMap<>();
+        params.put("status", status);
+        apiTemplate.makePutCall(centralApiUrl, endPoint, params, null);
+    }
+
+    public void updateVideoDetails(String videoId, VideoDetailsDTO videoDetailsDTO) {
+        log.info("Updating video details for {}", videoId);
+        String endPoint = "/channel/video/" + videoId + "/details";
+        apiTemplate.makePutCall(centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO);
     }
     public boolean isValidToken(String token){
         String endPoint = "/security/validate-token/" + token;

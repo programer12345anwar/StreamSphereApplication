@@ -6,6 +6,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminVideosPage from "./pages/AdminVideosPage";
 import AdminChannelsPage from "./pages/AdminChannelsPage";
+import AdminReportsPage from "./pages/AdminReportsPage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   return getToken() ? <>{children}</> : <Navigate to="/login" replace />;
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="videos" element={<AdminVideosPage />} />
           <Route path="channels" element={<AdminChannelsPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

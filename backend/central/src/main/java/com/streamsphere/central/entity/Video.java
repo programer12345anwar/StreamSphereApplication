@@ -3,8 +3,10 @@ package com.streamsphere.central.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
- import java.util.List;
+import java.util.List;
 import java.time.LocalDateTime;
+import com.streamsphere.central.enums.VideoStatus;
+import com.streamsphere.central.enums.VideoVisibility;
 
 @Getter
 @Setter
@@ -22,11 +24,19 @@ public class Video {
     private LocalDateTime updatedAt;
     private String videoLink;
     private String thumbnailLink;
-    private int views; //added
-    // Add this field to link back to Channel
+    private int views;
+    private boolean isShort;
+
+    @Enumerated(EnumType.STRING)
+    private VideoStatus status = VideoStatus.PUBLISHED;
+
+    @Enumerated(EnumType.STRING)
+    private VideoVisibility visibility = VideoVisibility.PUBLIC;
+
     @ManyToOne
-    @JoinColumn(name = "channel_id") // foreign key in Video table
+    @JoinColumn(name = "channel_id")
     private Channel channel;
+
     @ManyToMany
     @JoinTable(
             name = "videos_tags",
@@ -35,4 +45,3 @@ public class Video {
     )
     private List<Tag> tags;
 }
-

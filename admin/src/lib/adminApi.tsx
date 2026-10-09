@@ -10,7 +10,7 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-const API_BASE = (import.meta.env.VITE_API_GATEWAY_URL ?? "http://localhost:8080").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_GATEWAY_URL ?? (typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080")).replace(/\/+$/, "");
 export const TOKEN_KEY = "streamsphere_admin_token";
 export const USER_KEY = "streamsphere_admin_user";
 

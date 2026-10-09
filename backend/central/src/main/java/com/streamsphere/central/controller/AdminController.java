@@ -75,5 +75,20 @@ public class AdminController {
                                           @RequestParam(name="size", defaultValue="20") int size) {
         return adminService.getChannels(page, size);
     }
+
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<com.streamsphere.central.dto.response.AdminReportDTO> reports(@RequestParam(name="page", defaultValue="0") int page,
+                                                                              @RequestParam(name="size", defaultValue="20") int size) {
+        return adminService.getReports(page, size);
+    }
+
+    @PutMapping("/reports/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> updateReportStatus(@PathVariable(name="id") int id,
+                                                   @RequestParam(name="status") String status) {
+        adminService.updateReportStatus(id, status);
+        return ResponseEntity.ok().build();
+    }
 }
 

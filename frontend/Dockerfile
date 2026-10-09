@@ -3,10 +3,10 @@ FROM node:22-alpine AS build
 WORKDIR /app
 ARG VITE_API_GATEWAY_URL=http://localhost:8080
 ENV VITE_API_GATEWAY_URL=$VITE_API_GATEWAY_URL
-COPY frontend/package*.json ./
-COPY frontend/scripts ./scripts
+COPY package*.json ./
+COPY scripts ./scripts
 RUN npm ci
-COPY frontend/ ./
+COPY . ./
 RUN npm run build
 
 # Runtime stage

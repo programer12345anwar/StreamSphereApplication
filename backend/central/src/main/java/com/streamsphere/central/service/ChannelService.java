@@ -32,6 +32,9 @@ public class ChannelService {
     @Autowired
     ChannelRepo channelRepo;
 
+    @Autowired
+    NotificationService notificationService;
+
     public Channel getChannelById(UUID channelId){
         return channelRepo.findById(channelId).orElse(null);
     }
@@ -102,7 +105,9 @@ public class ChannelService {
             subscribers = new ArrayList<>();
             channel.setSubscribers(subscribers);
         }
-        subscribers.add(user);
+        if (!subscribers.contains(user)) {
+            subscribers.add(user);
+        }
         channelRepo.save(channel);
 
         // channel owner should get mail hey new subscriber added in your channel
@@ -114,6 +119,36 @@ public class ChannelService {
         message.setName(channel.getName());
 
         rabbitMqService.insertMessageToQueue(message);
+        
+        // In-App Notification
+        String msgTxt = user.getName() + " subscribed to your channel!";
+        notificationService.createAndSendNotification(channel.getUser(), "SUBSCRIBE", msgTxt, null);
+    }
+    
+    public void removeSubscriber(UUID userId, UUID channelId){
+        AppUser user = userService.getUserById(userId);
+        if(user == null){
+            throw new UserNotFound("User does not exist");
+        }
+        Channel channel = this.getChannelById(channelId);
+        if(channel == null){
+            throw new ChannelNotFound("Channel does not exist");
+        }
+
+        List<AppUser> subscribers = channel.getSubscribers();
+        if (subscribers != null && subscribers.contains(user)) {
+            subscribers.remove(user);
+            channel.setTotalSubs(Math.max(0, channel.getTotalSubs() - 1));
+            channelRepo.save(channel);
+        }
+    }
+
+    public boolean isUserSubscribed(UUID userId, UUID channelId) {
+        Channel channel = getChannelById(channelId);
+        if (channel == null || channel.getSubscribers() == null) {
+            return false;
+        }
+        return channel.getSubscribers().stream().anyMatch(u -> u.getId().equals(userId));
     }
 
     public List<Channel> getPopularChannels() {
@@ -128,6 +163,12 @@ public class ChannelService {
                                 .anyMatch(t -> t.getName() != null && t.getName().equalsIgnoreCase(tag))))
                 .toList();
     }
+
+    public List<Channel> searchChannels(String query) {
+        return channelRepo.searchByName(query);
+    }
+
+    public List<Channel> getSubscribedChannels(UUID userId) {
+        return channelRepo.findBySubscribersId(userId);
+    }
 }
-
-

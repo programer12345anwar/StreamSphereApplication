@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Upload } from "lucide-react";
+import { Home, Upload, ListVideo, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -8,6 +8,8 @@ interface SidebarProps {
 
 const mainLinks = [
   { to: "/", icon: Home, label: "Home" },
+  { to: "/shorts", icon: Smartphone, label: "Shorts" },
+  { to: "/playlists", icon: ListVideo, label: "Playlists" },
   { to: "/upload", icon: Upload, label: "Upload" },
 ];
 

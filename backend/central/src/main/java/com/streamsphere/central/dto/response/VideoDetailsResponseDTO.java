@@ -22,6 +22,7 @@ public class VideoDetailsResponseDTO {
     private UUID channelId;
     private String channelName;
     private List<String> tags;
+    private boolean isShort;
 }
 
 

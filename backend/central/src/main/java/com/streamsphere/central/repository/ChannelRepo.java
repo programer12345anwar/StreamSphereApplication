@@ -23,6 +23,11 @@ public interface ChannelRepo extends JpaRepository<Channel, UUID> {
     List<Channel> findPopularChannelsNative();
 
     Channel findByUserEmail(String email);
+    
+    @Query("SELECT c FROM Channel c WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<Channel> searchByName(@org.springframework.data.repository.query.Param("query") String query);
 
+    @Query("SELECT c FROM Channel c JOIN c.subscribers s WHERE s.id = :userId")
+    List<Channel> findBySubscribersId(@org.springframework.data.repository.query.Param("userId") UUID userId);
 }
 

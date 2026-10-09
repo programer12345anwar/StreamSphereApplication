@@ -20,6 +20,8 @@ public class VideoFeedItemDTO {
     private LocalDateTime uploadedAt;
     private UUID channelId;
     private String channelName;
+    private java.util.List<String> tags;
+    private boolean isShort;
 }
 
 

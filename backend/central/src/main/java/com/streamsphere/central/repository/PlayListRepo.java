@@ -7,8 +7,10 @@ import org.springframework.stereotype.Repository;
 
 import com.streamsphere.central.entity.PlayList;
 
+import java.util.List;
+
 @Repository
 public interface PlayListRepo extends JpaRepository<PlayList, UUID> {
-
+    List<PlayList> findByChannelId(UUID channelId);
 }
 
