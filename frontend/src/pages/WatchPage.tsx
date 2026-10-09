@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CommentsSection } from "@/components/CommentsSection";
+import CommentsSection from "@/components/CommentsSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getResumeTime, updateResumeTime } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -325,10 +325,11 @@ const WatchPage = () => {
       )}
       
       {videoId && (
-        <PlaylistModal 
-          videoId={videoId} 
-          isOpen={isPlaylistModalOpen} 
-          onClose={() => setIsPlaylistModalOpen(false)} 
+        <PlaylistModal
+          videoId={videoId}
+          channelId={String(video?.channelId ?? "")}
+          isOpen={isPlaylistModalOpen}
+          onClose={() => setIsPlaylistModalOpen(false)}
         />
       )}
     </Layout>
