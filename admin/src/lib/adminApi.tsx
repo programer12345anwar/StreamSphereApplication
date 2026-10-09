@@ -62,7 +62,13 @@ function normalizePage(path: string, body: any) {
 }
 
 export async function request(path: string, options: RequestInit = {}) {
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers: headers(options.headers as Record<string, string> | undefined) });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers: headers(options.headers as Record<string, string> | undefined) });
+  } catch {
+    throw new Error("Backend server is unavailable. Start the API gateway and confirm the backend is running on port 8080.");
+  }
+
   const body = await parseBody(res);
   if (res.status === 401 || res.status === 403) {
     throw new Error("Unauthorized — admin access required");
@@ -74,11 +80,17 @@ export async function request(path: string, options: RequestInit = {}) {
 }
 
 export async function adminLogin(email: string, password: string) {
-  const res = await fetch(`${API_BASE}/api/central/user/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/central/user/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new Error("Backend server is unavailable. Start the API gateway and confirm the backend is running on port 8080.");
+  }
+
   const body = await parseBody(res);
   if (!res.ok) throw new Error(body?.error || "Login failed");
   if (body.role !== "ADMIN") throw new Error("This account is not an admin");

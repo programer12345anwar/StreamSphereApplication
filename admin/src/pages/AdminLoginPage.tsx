@@ -9,7 +9,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  async function onSubmit(e) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
       await adminLogin(email, password);
       navigate("/");
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }

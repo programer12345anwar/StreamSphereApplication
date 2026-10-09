@@ -1,8 +1,9 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   server: {
     host: "::",
     port: 5174,
@@ -16,16 +17,13 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  esbuild: {
-    loader: "tsx",
-    include: /src\/.*\.[jt]sx?$/,
-  },
   optimizeDeps: {
+    include: ["recharts"],
     esbuildOptions: {
       loader: {
-        ".js": "tsx",
-        ".jsx": "tsx",
+        ".js": "jsx",
+        ".jsx": "jsx",
       },
     },
   },
-}));
+});
