@@ -27,6 +27,10 @@ public class CorsConfig {
 
         if (origins.length > 0) {
             corsConfig.setAllowedOrigins(Arrays.asList(origins));
+            // Vite may select a different localhost port when its default port is occupied.
+            corsConfig.addAllowedOriginPattern("http://localhost:*");
+            corsConfig.addAllowedOriginPattern("http://127.0.0.1:*");
+            corsConfig.addAllowedOriginPattern("http://[::1]:*");
             corsConfig.setAllowCredentials(true);
         } else {
             corsConfig.addAllowedOriginPattern("*");
@@ -43,4 +47,3 @@ public class CorsConfig {
         return new CorsWebFilter(source);
     }
 }
-
