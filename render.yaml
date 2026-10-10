@@ -1,0 +1,187 @@
+services:
+  - type: web
+    name: streamsphere-central
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./backend/central/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_CONNECTION_STRING
+        fromDatabase:
+          name: streamsphere-postgres
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: streamsphere-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: streamsphere-postgres
+          property: password
+      - key: JPA_DDL_AUTO
+        value: validate
+      - key: FLYWAY_ENABLED
+        value: "true"
+      - key: FLYWAY_BASELINE_ON_MIGRATE
+        value: "true"
+      - key: CENTRAL_SECRET_KEY
+        generateValue: true
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: streamsphere-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: streamsphere-redis
+          property: port
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+      - key: SPRING_RABBITMQ_SSL_ENABLED
+        value: "true"
+      - key: RABBITMQ_EXCHANGE_NAME
+        value: notification-exchange
+      - key: RABBITMQ_QUEUE_NAME
+        value: notification-queue
+      - key: RABBITMQ_ROUTING_KEY
+        value: notification-123
+      - key: CORS_ENABLED
+        value: "true"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: streamsphere-notification
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./backend/notification-api/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: RABBITMQ_HOST
+        sync: false
+      - key: RABBITMQ_PORT
+        sync: false
+      - key: RABBITMQ_USERNAME
+        sync: false
+      - key: RABBITMQ_PASSWORD
+        sync: false
+      - key: SPRING_RABBITMQ_SSL_ENABLED
+        value: "true"
+      - key: RABBITMQ_EXCHANGE_NAME
+        value: notification-exchange
+      - key: RABBITMQ_QUEUE_NAME
+        value: notification-queue
+      - key: RABBITMQ_ROUTING_KEY
+        value: notification-123
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_SMTP_AUTH
+        value: "true"
+      - key: MAIL_SMTP_STARTTLS_ENABLE
+        value: "true"
+      - key: PLATFORM_NAME
+        value: StreamSphere
+      - key: PLATFORM_BASE_URL
+        sync: false
+      - key: PLATFORM_LOGO_URL
+        sync: false
+      - key: CORS_ENABLED
+        value: "true"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: streamsphere-video
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./backend/video-service/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: IMAGE_URL
+        sync: false
+      - key: IMAGE_PUBLIC_KEY
+        sync: false
+      - key: IMAGE_PRIVATE_KEY
+        sync: false
+      - key: CENTRAL_SERVICE_HOSTPORT
+        fromService:
+          type: web
+          name: streamsphere-central
+          property: hostport
+      - key: MAX_UPLOAD_FILE_SIZE
+        value: 500MB
+      - key: MAX_UPLOAD_REQUEST_SIZE
+        value: 500MB
+      - key: CORS_ENABLED
+        value: "true"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: streamsphere-api-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./backend/api-gateway/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: CENTRAL_SERVICE_HOSTPORT
+        fromService:
+          type: web
+          name: streamsphere-central
+          property: hostport
+      - key: VIDEO_SERVICE_HOSTPORT
+        fromService:
+          type: web
+          name: streamsphere-video
+          property: hostport
+      - key: NOTIFICATION_SERVICE_HOSTPORT
+        fromService:
+          type: web
+          name: streamsphere-notification
+          property: hostport
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: GATEWAY_CONNECT_TIMEOUT_MS
+        value: "10000"
+      - key: GATEWAY_RESPONSE_TIMEOUT
+        value: 30s
+
+  - type: keyvalue
+    name: streamsphere-redis
+    plan: free
+    region: oregon
+    ipAllowList: []
+
+databases:
+  - name: streamsphere-postgres
+    plan: free
+    region: oregon
+    postgresMajorVersion: "17"
+    databaseName: streamsphere
+    user: streamsphere
+    ipAllowList: []

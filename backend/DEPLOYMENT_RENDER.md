@@ -1,152 +1,89 @@
-# StreamSphere Deployment Guide (Render + Docker)
+# Deploying StreamSphere on Render
 
-## 1. Deployment topology
+The repository-root `render.yaml` defines the four backend web services plus a
+Render Postgres database and Redis instance. Use it to create or update the
+backend resources together as one Render Blueprint.
 
-You should deploy backend services **separately**.
+## Before creating the Blueprint
 
-1. `central`
-2. `video-service`
-3. `notification-api`
-4. `api-gateway`
+1. Push the repository to GitHub.
+2. Create a hosted RabbitMQ instance with a TLS connection, and have its host,
+   port, username, and password ready. The Blueprint expects TLS by default.
+3. Have ImageKit API keys and SMTP credentials ready.
+4. Decide the exact public frontend and admin origins for the CORS prompts.
 
-The gateway is the public backend entrypoint used by frontend.  
-Yes, you deploy all 4 backend services independently.
+## Create and deploy
 
-## 2. Required managed dependencies
+1. In Render, select **New + > Blueprint**.
+2. Connect this GitHub repository and select the branch containing `render.yaml`.
+3. Review the resources in the Blueprint. All services use the `oregon` region;
+   change every region together in `render.yaml` before creating resources if
+   you want a different supported region.
+4. During initial setup, enter the prompted values for:
+   - `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, and
+     `RABBITMQ_PASSWORD` for both Central and Notification.
+   - `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, and `IMAGE_PRIVATE_KEY` for Video.
+   - `MAIL_USERNAME` and `MAIL_PASSWORD` for Notification.
+   - `PLATFORM_BASE_URL` and `PLATFORM_LOGO_URL` for Notification.
+   - `CORS_ALLOWED_ORIGINS` for each service. Enter the exact HTTPS frontend and
+     admin origins, comma-separated, without a trailing slash.
+5. Review the plan and cost shown by Render, then create the Blueprint. Render
+   provisions PostgreSQL and Redis and deploys the four backend services.
+6. Open each service's Events and Logs in Render. Wait for each deployment to
+   finish and for `/actuator/health` to report `UP`.
+7. Copy the public URL of the `streamsphere-api-gateway` service. Set
+   `VITE_API_GATEWAY_URL` to that URL in the frontend's hosting provider, then
+   rebuild/redeploy the frontend.
 
-Provision these before service rollout:
+The Blueprint generates `CENTRAL_SECRET_KEY` automatically and wires the
+database, Redis, Central API, and gateway service URLs through Render references.
+Do not put secrets in `render.yaml` or commit a local `.env` file.
 
-1. PostgreSQL (for `central`)
-2. RabbitMQ (for `central` producer and `notification-api` consumer)
-3. SMTP credentials (for `notification-api`)
-4. ImageKit credentials (for `video-service`)
+`sync: false` values are requested during the initial Blueprint creation only.
+If you add or change one later, update it in the relevant service's Render
+Environment page.
 
-## 3. Render service creation
+## Runtime and cost notes
 
-Create 4 Render Web Services, each with `Runtime: Docker`.
+The Blueprint uses Render's `free` plans to make a no-cost first deployment
+possible where those plans are available. Free web services can sleep when idle,
+and free Postgres has limited lifetime/storage and is not appropriate for
+production data. Check Render's current plan limits before using this for a live
+production launch; upgrade the service and database plans as needed.
 
-1. Service `central` with root directory `backend/central`
-2. Service `video-service` with root directory `backend/video-service`
-3. Service `notification-api` with root directory `backend/notification-api`
-4. Service `api-gateway` with root directory `backend/api-gateway`
+All four services and the database are configured for `oregon` so private
+database and Redis references work. Use a supported Render region and keep the
+region the same for all resources.
 
-Each service already contains a root `Dockerfile`.
+If your RabbitMQ provider does not use TLS, set
+`SPRING_RABBITMQ_SSL_ENABLED=false` in both the Central and Notification
+services. Never use local `guest` credentials or `localhost` for production
+dependencies.
 
-## 4. Environment variables
+## Smoke tests
 
-Use each `.env.example` as baseline.
+Check health:
 
-1. `backend/central/.env.example`
-2. `backend/video-service/.env.example`
-3. `backend/notification-api/.env.example`
-4. `backend/api-gateway/.env.example`
-
-Set real production values for secrets and URLs in Render dashboard.
-
-### Central service
-
-```env
-DB_URL=
-DB_USERNAME=
-DB_PASSWORD=
-CENTRAL_SECRET_KEY=
-RABBITMQ_HOST=
-RABBITMQ_PORT=
-RABBITMQ_USERNAME=
-RABBITMQ_PASSWORD=
-RABBITMQ_EXCHANGE_NAME=
-RABBITMQ_QUEUE_NAME=
-RABBITMQ_ROUTING_KEY=
-CORS_ALLOWED_ORIGINS=
+```text
+GET https://<service-url>/actuator/health
 ```
 
-### Video service
+Try gateway routes:
 
-```env
-IMAGE_URL=
-IMAGE_PRIVATE_KEY=
-IMAGE_PUBLIC_KEY=
-CENTRAL_API_URL=
-CORS_ALLOWED_ORIGINS=
+```text
+GET  https://<gateway-url>/api/v1/central/videos
+POST https://<gateway-url>/api/central/user/register
+POST https://<gateway-url>/api/central/user/login
+POST https://<gateway-url>/api/v1/video/upload
 ```
 
-### Notification service
+Video upload requires valid ImageKit credentials and an authenticated request.
 
-```env
-RABBITMQ_HOST=
-RABBITMQ_PORT=
-RABBITMQ_USERNAME=
-RABBITMQ_PASSWORD=
-RABBITMQ_EXCHANGE_NAME=
-RABBITMQ_QUEUE_NAME=
-RABBITMQ_ROUTING_KEY=
-MAIL_HOST=
-MAIL_PORT=
-MAIL_USERNAME=
-MAIL_PASSWORD=
-PLATFORM_NAME=
-PLATFORM_BASE_URL=
-PLATFORM_LOGO_URL=
-CORS_ALLOWED_ORIGINS=
-```
+## Production checklist
 
-### API gateway
-
-```env
-CENTRAL_SERVICE_URL=
-VIDEO_SERVICE_URL=
-NOTIFICATION_SERVICE_URL=
-CORS_ALLOWED_ORIGINS=
-```
-
-## 5. Service URL wiring
-
-After first deploy, copy Render service URLs and wire:
-
-1. `CENTRAL_API_URL=<central-service-url>/api/v1/central` in `video-service`
-2. `CENTRAL_SERVICE_URL=<central-service-url>` in `api-gateway`
-3. `VIDEO_SERVICE_URL=<video-service-url>` in `api-gateway`
-4. `NOTIFICATION_SERVICE_URL=<notification-api-url>` in `api-gateway`
-
-Use Render internal/private networking where available.
-
-## 6. Frontend deployment
-
-Deploy `frontend` as a Render Static Site.
-
-1. Build command: `npm run build`
-2. Publish directory: `dist`
-3. Environment variable: `VITE_API_GATEWAY_URL=<api-gateway-public-url>`
-
-Frontend should call only gateway, never internal service URLs directly.
-
-## 7. Deployment order
-
-1. Provision PostgreSQL and RabbitMQ
-2. Deploy `central`
-3. Deploy `notification-api`
-4. Deploy `video-service`
-5. Deploy `api-gateway`
-6. Deploy frontend static site
-7. Update CORS values on all backend services with frontend domain
-
-## 8. Health checks and smoke tests
-
-Health endpoints:
-
-1. `GET /actuator/health` on each backend service
-
-Gateway smoke routes:
-
-1. `GET /api/v1/central/videos`
-2. `POST /api/central/user/register`
-3. `POST /api/central/user/login`
-4. `POST /api/v1/video/upload` (auth + multipart)
-
-## 9. Production hardening checklist
-
-1. Use strong random `CENTRAL_SECRET_KEY`
-2. Restrict `CORS_ALLOWED_ORIGINS` to exact frontend domains
-3. Store secrets only in Render environment variables
-4. Rotate any leaked local/dev credentials before go-live
-5. Keep `JPA_DDL_AUTO=update` only for non-critical environments; use migrations for long-term production
+- Replace free plans with production-appropriate plans and confirm database
+  backups/retention.
+- Use exact frontend/admin HTTPS origins in CORS settings.
+- Keep ImageKit, RabbitMQ, SMTP, and database credentials only in Render's
+  Environment settings.
+- Rotate any credentials that were exposed or used in local development.
