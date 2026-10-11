@@ -17,19 +17,13 @@ npm install
 npm run dev
 ```
 
-By default, local development uses `http://localhost:8080` as the API Gateway URL. To override it, create a `.env` file:
-
-```sh
-VITE_API_GATEWAY_URL=http://localhost:8080
-```
+The frontend sends API requests to the live API Gateway at
+`https://streamsphere-api-gateway.onrender.com`, configured in the API client.
 
 ## Production Deployment
 
-For Vercel, set the frontend project root to `frontend` and configure:
-
-```sh
-VITE_API_GATEWAY_URL=https://your-api-gateway.example.com
-```
+For Vercel, set the project root to `frontend`. No API URL environment
+variable is required; the live gateway URL is included in the production build.
 
 Then use the standard commands:
 

@@ -37,9 +37,10 @@ module POMs.
    provisions PostgreSQL and Redis and deploys the four backend services.
 6. Open each service's Events and Logs in Render. Wait for each deployment to
    finish and for `/actuator/health` to report `UP`.
-7. Copy the public URL of the `streamsphere-api-gateway` service. Set
-   `VITE_API_GATEWAY_URL` to that URL in the frontend's hosting provider, then
-   rebuild/redeploy the frontend.
+7. Frontend and Admin use the public
+   `https://streamsphere-api-gateway.onrender.com` URL configured in their API
+   clients. If your Render gateway URL changes, update the URL in both apps and
+   rebuild/redeploy them.
 
 The Blueprint generates `CENTRAL_SECRET_KEY` automatically and wires the
 database, Redis, Central API, and gateway service URLs through Render references.

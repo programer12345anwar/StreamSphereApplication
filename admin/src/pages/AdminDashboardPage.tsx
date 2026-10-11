@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { request, getToken } from "@/lib/adminApi";
+import { API_GATEWAY_BASE, request, getToken } from "@/lib/adminApi";
 import { Client } from "@stomp/stompjs";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Video, Tv, Eye, Activity } from "lucide-react";
@@ -20,7 +20,7 @@ export default function AdminDashboardPage() {
 
     // 2. WebSocket setup
     const token = getToken();
-    const wsUrl = (import.meta.env.VITE_API_GATEWAY_URL ?? (typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080")).replace(/^http/, "ws");
+    const wsUrl = API_GATEWAY_BASE.replace(/^http/, "ws");
     
     const client = new Client({
       brokerURL: `${wsUrl}/api/v1/central/ws`,

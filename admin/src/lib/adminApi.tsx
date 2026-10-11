@@ -9,8 +9,9 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
+import axios from "axios";
 
-const API_BASE = (import.meta.env.VITE_API_GATEWAY_URL ?? (typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080")).replace(/\/+$/, "");
+export const API_GATEWAY_BASE = "https://streamsphere-api-gateway.onrender.com";
 export const TOKEN_KEY = "streamsphere_admin_token";
 export const USER_KEY = "streamsphere_admin_user";
 
@@ -29,16 +30,6 @@ export function getStoredUser() {
 function headers(extra = {}) {
   const token = getToken();
   return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
-}
-
-async function parseBody(res: Response) {
-  const raw = await res.text();
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return raw;
-  }
 }
 
 function normalizeVideo(video: any) {
@@ -62,37 +53,47 @@ function normalizePage(path: string, body: any) {
 }
 
 export async function request(path: string, options: RequestInit = {}) {
-  let res: Response;
+  let response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers: headers(options.headers as Record<string, string> | undefined) });
-  } catch {
-    throw new Error("Backend server is unavailable. Start the API gateway and confirm the backend is running on port 8080.");
+    response = await axios.request({
+      baseURL: API_GATEWAY_BASE,
+      url: path,
+      method: options.method || "GET",
+      headers: headers(options.headers as Record<string, string> | undefined),
+      data: options.body,
+    });
+  } catch (error) {
+    if (!axios.isAxiosError(error)) throw error;
+    if (!error.response) {
+      throw new Error("Backend server is unavailable. Check the API gateway and try again.");
+    }
+    if (error.response.status === 401 || error.response.status === 403) {
+      throw new Error("Unauthorized — admin access required");
+    }
+    const body = error.response.data;
+    throw new Error(body?.error || body?.message || `Request failed: ${error.response.status}`);
   }
 
-  const body = await parseBody(res);
-  if (res.status === 401 || res.status === 403) {
-    throw new Error("Unauthorized — admin access required");
-  }
-  if (!res.ok) {
-    throw new Error(body?.error || body?.message || `Request failed: ${res.status}`);
-  }
-  return res.status === 204 ? null : normalizePage(path, body);
+  return response.status === 204 ? null : normalizePage(path, response.data);
 }
 
 export async function adminLogin(email: string, password: string) {
-  let res: Response;
+  let response;
   try {
-    res = await fetch(`${API_BASE}/api/central/user/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+    response = await axios.post(`${API_GATEWAY_BASE}/api/central/user/login`, {
+      email,
+      password,
     });
-  } catch {
-    throw new Error("Backend server is unavailable. Start the API gateway and confirm the backend is running on port 8080.");
+  } catch (error) {
+    if (!axios.isAxiosError(error)) throw error;
+    if (!error.response) {
+      throw new Error("Backend server is unavailable. Check the API gateway and try again.");
+    }
+    const body = error.response.data;
+    throw new Error(body?.error || body?.message || "Login failed");
   }
 
-  const body = await parseBody(res);
-  if (!res.ok) throw new Error(body?.error || "Login failed");
+  const body = response.data;
   if (body.role !== "ADMIN") throw new Error("This account is not an admin");
   localStorage.setItem(TOKEN_KEY, body.token);
   localStorage.setItem(USER_KEY, JSON.stringify({ email, role: body.role }));
