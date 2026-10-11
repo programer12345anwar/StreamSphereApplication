@@ -1,8 +1,10 @@
 package com.streamsphere.central.config;
 
 
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -47,12 +49,22 @@ public class RabbitMQConfig {
     @Bean
     public CachingConnectionFactory getConnectionFactory(
             @Value("${spring.rabbitmq.host}") String host,
+            @Value("${spring.rabbitmq.port}") int port,
             @Value("${spring.rabbitmq.username}") String username,
-            @Value("${spring.rabbitmq.password}") String password) {
+            @Value("${spring.rabbitmq.password}") String password,
+            @Value("${spring.rabbitmq.virtual-host:/}") String virtualHost,
+            @Value("${spring.rabbitmq.ssl.enabled:false}") boolean sslEnabled)
+            throws NoSuchAlgorithmException {
 
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory(host);
+        connectionFactory.setPort(port);
         connectionFactory.setUsername(username);
         connectionFactory.setPassword(password);
+        connectionFactory.setVirtualHost(virtualHost);
+        if (sslEnabled) {
+            connectionFactory.getRabbitConnectionFactory().useSslProtocol(SSLContext.getDefault());
+            connectionFactory.getRabbitConnectionFactory().enableHostnameVerification();
+        }
         return connectionFactory;
     }
 
@@ -93,4 +105,3 @@ public class RabbitMQConfig {
      *     return new ArrayList<>();
      * }
      */
-

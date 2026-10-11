@@ -26,7 +26,8 @@ module POMs.
    you want a different supported region.
 4. During initial setup, enter the prompted values for:
    - `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, and
-     `RABBITMQ_PASSWORD` for both Central and Notification.
+     `RABBITMQ_PASSWORD`, and the exact `RABBITMQ_VIRTUAL_HOST` for both
+     Central and Notification.
    - `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, and `IMAGE_PRIVATE_KEY` for Video.
    - `MAIL_USERNAME` and `MAIL_PASSWORD` for Notification.
    - `PLATFORM_BASE_URL` and `PLATFORM_LOGO_URL` for Notification.

@@ -47,6 +47,8 @@ services:
         sync: false
       - key: RABBITMQ_PASSWORD
         sync: false
+      - key: RABBITMQ_VIRTUAL_HOST
+        sync: false
       - key: SPRING_RABBITMQ_SSL_ENABLED
         value: "true"
       - key: RABBITMQ_EXCHANGE_NAME
@@ -77,6 +79,8 @@ services:
       - key: RABBITMQ_USERNAME
         sync: false
       - key: RABBITMQ_PASSWORD
+        sync: false
+      - key: RABBITMQ_VIRTUAL_HOST
         sync: false
       - key: SPRING_RABBITMQ_SSL_ENABLED
         value: "true"
