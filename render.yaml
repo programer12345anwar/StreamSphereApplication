@@ -5,8 +5,8 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    dockerfilePath: ./backend/central/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./central/Dockerfile
+    dockerContext: .
     healthCheckPath: /actuator/health
     envVars:
       - key: DB_CONNECTION_STRING
@@ -66,8 +66,8 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    dockerfilePath: ./backend/notification-api/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./notification-api/Dockerfile
+    dockerContext: .
     healthCheckPath: /actuator/health
     envVars:
       - key: RABBITMQ_HOST
@@ -115,8 +115,8 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    dockerfilePath: ./backend/video-service/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./video-service/Dockerfile
+    dockerContext: .
     healthCheckPath: /actuator/health
     envVars:
       - key: IMAGE_URL
@@ -145,8 +145,8 @@ services:
     plan: free
     region: oregon
     rootDir: backend
-    dockerfilePath: ./backend/api-gateway/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: .
     healthCheckPath: /actuator/health
     envVars:
       - key: CENTRAL_SERVICE_HOSTPORT

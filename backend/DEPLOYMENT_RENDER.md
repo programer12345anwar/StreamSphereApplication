@@ -12,6 +12,11 @@ backend resources together as one Render Blueprint.
 3. Have ImageKit API keys and SMTP credentials ready.
 4. Decide the exact public frontend and admin origins for the CORS prompts.
 
+The Blueprint sets each Docker service's root directory to `backend`. Its
+Dockerfile paths are relative to that directory, and its Docker build context is
+the backend directory so each Dockerfile can copy the Maven parent POM and its
+module POMs.
+
 ## Create and deploy
 
 1. In Render, select **New + > Blueprint**.
