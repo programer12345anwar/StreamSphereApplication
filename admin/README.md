@@ -22,8 +22,10 @@ The admin app sends API requests to the live API Gateway at
 
 ## Production Deployment
 
-For Vercel, set the project root to `admin`. No API URL environment
-variable is required; the live gateway URL is included in the production build.
+For Vercel, set the project root to `admin`. The included `vercel.json` rewrites
+client-side routes such as `/login` to the SPA entry point. No API URL
+environment variable is required; the live gateway URL is included in the
+production build.
 
 Then use the standard commands:
 
