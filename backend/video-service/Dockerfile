@@ -15,6 +15,7 @@ RUN mvn -q -pl video-service -am clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
+RUN mkdir -p /app/uploads/videos && chown -R app:app /app/uploads
 COPY --from=build --chown=app:app /app/video-service/target/video-service-0.0.1-SNAPSHOT.jar app.jar
 USER app
 ENV JAVA_OPTS=""
