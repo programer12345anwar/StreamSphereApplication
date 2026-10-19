@@ -11,9 +11,36 @@ import {
 } from "@tanstack/react-query";
 import axios from "axios";
 
-export const API_GATEWAY_BASE = "https://streamsphere-api-gateway.onrender.com";
+const API_CONFIG_URL =
+  import.meta.env.VITE_API_CONFIG_URL || "https://streamsphere-api-gateway.onrender.com";
 export const TOKEN_KEY = "streamsphere_admin_token";
 export const USER_KEY = "streamsphere_admin_user";
+let apiBaseUrlPromise: Promise<string> | undefined;
+
+export function getApiBaseUrl() {
+  if (!apiBaseUrlPromise) {
+    apiBaseUrlPromise = axios
+      .get(`${API_CONFIG_URL.replace(/\/+$/, "")}/api/config`)
+      .then(({ data }) => {
+        const apiBaseUrl: unknown = data?.apiBaseUrl;
+        if (typeof apiBaseUrl !== "string") {
+          throw new Error("Backend API configuration is missing apiBaseUrl");
+        }
+
+        const parsedUrl = new URL(apiBaseUrl);
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          throw new Error("Backend API configuration must use HTTP or HTTPS");
+        }
+        return apiBaseUrl.replace(/\/+$/, "");
+      })
+      .catch((error: unknown) => {
+        apiBaseUrlPromise = undefined;
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Unable to load backend API configuration: ${message}`);
+      });
+  }
+  return apiBaseUrlPromise;
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -55,8 +82,9 @@ function normalizePage(path: string, body: any) {
 export async function request(path: string, options: RequestInit = {}) {
   let response;
   try {
+    const apiBaseUrl = await getApiBaseUrl();
     response = await axios.request({
-      baseURL: API_GATEWAY_BASE,
+      baseURL: apiBaseUrl,
       url: path,
       method: options.method || "GET",
       headers: headers(options.headers as Record<string, string> | undefined),
@@ -80,7 +108,8 @@ export async function request(path: string, options: RequestInit = {}) {
 export async function adminLogin(email: string, password: string) {
   let response;
   try {
-    response = await axios.post(`${API_GATEWAY_BASE}/api/central/user/login`, {
+    const apiBaseUrl = await getApiBaseUrl();
+    response = await axios.post(`${apiBaseUrl}/api/central/user/login`, {
       email,
       password,
     });

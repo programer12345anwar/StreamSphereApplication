@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API_GATEWAY_BASE, request, getToken } from "@/lib/adminApi";
+import { getApiBaseUrl, request, getToken } from "@/lib/adminApi";
 import { Client } from "@stomp/stompjs";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Video, Tv, Eye, Activity } from "lucide-react";
@@ -20,35 +20,42 @@ export default function AdminDashboardPage() {
 
     // 2. WebSocket setup
     const token = getToken();
-    const wsUrl = API_GATEWAY_BASE.replace(/^http/, "ws");
-    
-    const client = new Client({
-      brokerURL: `${wsUrl}/api/v1/central/ws`,
-      connectHeaders: { Authorization: `Bearer ${token}` },
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-    });
+    let client: Client | undefined;
+    let disposed = false;
+    getApiBaseUrl()
+      .then((apiBaseUrl) => {
+        if (disposed) return;
+        const wsUrl = apiBaseUrl.replace(/^http/, "ws");
+        client = new Client({
+          brokerURL: `${wsUrl}/api/v1/central/ws`,
+          connectHeaders: { Authorization: `Bearer ${token}` },
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+        });
 
-    client.onConnect = () => {
-      client.subscribe("/topic/admin/analytics", (message) => {
-        if (message.body) {
-          const newAnalytics = JSON.parse(message.body);
-          setData(newAnalytics);
-          setHistory((prev) => {
-            const updated = [...prev, { time: new Date().toLocaleTimeString(), ...newAnalytics }];
-            if (updated.length > 20) updated.shift();
-            return updated;
+        client.onConnect = () => {
+          client?.subscribe("/topic/admin/analytics", (message) => {
+            if (message.body) {
+              const newAnalytics = JSON.parse(message.body);
+              setData(newAnalytics);
+              setHistory((prev) => {
+                const updated = [...prev, { time: new Date().toLocaleTimeString(), ...newAnalytics }];
+                if (updated.length > 20) updated.shift();
+                return updated;
+              });
+            }
           });
-        }
-      });
-    };
+        };
 
-    client.onStompError = (frame) => console.error("STOMP error:", frame.headers["message"]);
+        client.onStompError = (frame) => console.error("STOMP error:", frame.headers["message"]);
+        client.activate();
+      })
+      .catch((err) => setError(String(err.message)));
 
-    client.activate();
     return () => {
-      client.deactivate();
+      disposed = true;
+      void client?.deactivate();
     };
   }, []);
 

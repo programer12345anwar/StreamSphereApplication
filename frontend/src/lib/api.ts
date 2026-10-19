@@ -1,7 +1,33 @@
 import axios from "axios";
 
-const API_GATEWAY_BASE = "https://streamsphere-api-gateway.onrender.com";
+const API_CONFIG_URL =
+  import.meta.env.VITE_API_CONFIG_URL || "https://streamsphere-api-gateway.onrender.com";
 const TOKEN_KEY = "streamsphere_token";
+let apiBaseUrlPromise;
+
+export function getApiBaseUrl() {
+  if (!apiBaseUrlPromise) {
+    apiBaseUrlPromise = axios
+      .get(`${API_CONFIG_URL.replace(/\/+$/, "")}/api/config`)
+      .then(({ data }) => {
+        const apiBaseUrl = data?.apiBaseUrl;
+        if (typeof apiBaseUrl !== "string") {
+          throw new Error("Backend API configuration is missing apiBaseUrl");
+        }
+
+        const parsedUrl = new URL(apiBaseUrl);
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          throw new Error("Backend API configuration must use HTTP or HTTPS");
+        }
+        return apiBaseUrl.replace(/\/+$/, "");
+      })
+      .catch((error) => {
+        apiBaseUrlPromise = undefined;
+        throw new Error(`Unable to load backend API configuration: ${error.message}`);
+      });
+  }
+  return apiBaseUrlPromise;
+}
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -40,8 +66,9 @@ function normalizeVideo(video) {
 
 async function apiRequest(path, options = {}) {
   try {
+    const apiBaseUrl = await getApiBaseUrl();
     const response = await axios.request({
-      baseURL: API_GATEWAY_BASE,
+      baseURL: apiBaseUrl,
       url: path,
       method: options.method || "GET",
       headers: options.headers,
@@ -66,7 +93,7 @@ export function getAuthToken() {
   return getToken();
 }
 
-export { TOKEN_KEY, API_GATEWAY_BASE };
+export { TOKEN_KEY };
 
 export async function registerUser(data) {
   return apiRequest("/api/central/user/register", {

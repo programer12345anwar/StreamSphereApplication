@@ -45,6 +45,11 @@ module POMs.
 The Blueprint generates `CENTRAL_SECRET_KEY` automatically and wires the
 database, Redis, Central API, and gateway service URLs through Render references.
 Do not put secrets in `render.yaml` or commit a local `.env` file.
+The API Gateway exposes `GET /api/config`, which returns the public API base URL
+from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
+Render environment variable and the `VITE_API_CONFIG_URL` value in both Vercel
+projects; application API URLs are then read dynamically from the config
+endpoint.
 
 `sync: false` values are requested during the initial Blueprint creation only.
 If you add or change one later, update it in the relevant service's Render

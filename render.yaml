@@ -153,6 +153,8 @@ services:
     dockerContext: .
     healthCheckPath: /actuator/health
     envVars:
+      - key: PUBLIC_API_BASE_URL
+        value: https://streamsphere-api-gateway.onrender.com
       - key: CENTRAL_SERVICE_HOSTPORT
         fromService:
           type: web
