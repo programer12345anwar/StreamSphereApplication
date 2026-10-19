@@ -47,7 +47,9 @@ database, Redis, Central API, and gateway service URLs through Render references
 Do not put secrets in `render.yaml` or commit a local `.env` file.
 The Gateway's Central API route uses `CENTRAL_SERVICE_URL`, set by the Blueprint
 to the public Central service URL. This explicit setting takes precedence over
-the private `CENTRAL_SERVICE_HOSTPORT` fallback.
+the private `CENTRAL_SERVICE_HOSTPORT` fallback. Browser CORS is enforced at the
+Gateway; it removes the browser `Origin` header before forwarding API requests
+so downstream services do not reject origins already allowed by the Gateway.
 The API Gateway exposes `GET /api/config`, which returns the public API base URL
 from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
 Render environment variable and the `VITE_API_CONFIG_URL` value in both Vercel
