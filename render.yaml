@@ -155,6 +155,8 @@ services:
     envVars:
       - key: PUBLIC_API_BASE_URL
         value: https://streamsphere-api-gateway.onrender.com
+      - key: CENTRAL_SERVICE_URL
+        value: https://streamsphere-central.onrender.com
       - key: CENTRAL_SERVICE_HOSTPORT
         fromService:
           type: web
