@@ -31,7 +31,12 @@ public class AsyncVideoProcessor {
     }
 
     @Async
-    public void processVideo(UUID channelId, String videoId, VideoDetailsDTO videoDetailsDTO, String storedFilename) {
+    public void processVideo(
+            UUID channelId,
+            String videoId,
+            VideoDetailsDTO videoDetailsDTO,
+            String storedFilename,
+            String authorization) {
         log.info("Starting asynchronous processing for video: {}", videoId);
         
         try {
@@ -40,7 +45,7 @@ public class AsyncVideoProcessor {
             if (thumbnailFilename != null) {
                 String thumbnailUrl = "/api/v1/video/stream/" + thumbnailFilename;
                 videoDetailsDTO.setThumbnailLink(thumbnailUrl);
-                centralApiConnectionService.updateVideoDetails(videoId, videoDetailsDTO);
+                centralApiConnectionService.updateVideoDetails(videoId, videoDetailsDTO, authorization);
             }
 
             // Mock video processing (e.g. transcode wait)
@@ -49,7 +54,7 @@ public class AsyncVideoProcessor {
             // Update status to PUBLISHED
             videoDetailsDTO.setStatus("PUBLISHED");
             log.info("Video processing complete. Updating status to PUBLISHED for video: {}", videoId);
-            centralApiConnectionService.updateVideoStatus(videoId, "PUBLISHED");
+            centralApiConnectionService.updateVideoStatus(videoId, "PUBLISHED", authorization);
         } catch (InterruptedException e) {
             log.error("Video processing interrupted", e);
             Thread.currentThread().interrupt();

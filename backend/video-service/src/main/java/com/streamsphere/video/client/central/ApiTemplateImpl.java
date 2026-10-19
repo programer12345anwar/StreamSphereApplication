@@ -50,11 +50,17 @@ public class ApiTemplateImpl implements ApiTemplate {
     }
 
     @Override
-    public Object makePostCall(String apiUrl, String endPoint, Map<String, String> queryParams, Object requestBody) {
+    public Object makePostCall(
+            String apiUrl,
+            String endPoint,
+            Map<String, String> queryParams,
+            Object requestBody,
+            String authorization) {
         URI url = this.createUrl(apiUrl, endPoint, queryParams);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set(HttpHeaders.AUTHORIZATION, authorization);
 
         RequestEntity<Object> request = RequestEntity
                 .post(url)
@@ -70,11 +76,20 @@ public class ApiTemplateImpl implements ApiTemplate {
     }
 
     @Override
-    public Object makePutCall(String apiUrl, String endPoint, Map<String, String> queryParams, Object requestBody) {
+    public Object makePutCall(
+            String apiUrl,
+            String endPoint,
+            Map<String, String> queryParams,
+            Object requestBody,
+            String authorization) {
         URI url = this.createUrl(apiUrl, endPoint, queryParams);
-        RequestEntity request = RequestEntity.put(url).body(requestBody);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, authorization);
+        if (requestBody != null) {
+            headers.setContentType(MediaType.APPLICATION_JSON);
+        }
+        RequestEntity request = RequestEntity.put(url).headers(headers).body(requestBody);
         ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.PUT, request, Object.class);
         return response.getBody();
     }
 }
-

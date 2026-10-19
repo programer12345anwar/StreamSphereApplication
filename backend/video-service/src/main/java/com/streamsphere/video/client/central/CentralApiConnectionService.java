@@ -32,13 +32,15 @@ public class CentralApiConnectionService {
 
     // Save video details method is going to call save video details endpoint present in central
     public void saveVideoDetails( UUID channelId,
-    VideoDetailsDTO videoDetailsDTO ){
+    VideoDetailsDTO videoDetailsDTO,
+    String authorization ){
          // i need to call save video details endpoint declared in your  channel controller of central api
         log.info("comes to centralConnectionApiService");
          String endPoint = "/channel/" + channelId.toString() +  "/video/upload";
          log.info("this is endpoint: "+endPoint);
          // apiurl, endpoint, queryparams, requestbody
-         Object resp = apiTemplate.makePostCall(centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO);
+         Object resp = apiTemplate.makePostCall(
+                 centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO, authorization);
         if (resp == null) {
             log.warn("Central API returned null response for uploading video");
         } else {
@@ -46,18 +48,18 @@ public class CentralApiConnectionService {
         }
     }
 
-    public void updateVideoStatus(String videoId, String status) {
+    public void updateVideoStatus(String videoId, String status, String authorization) {
         log.info("Updating video status for {} to {}", videoId, status);
         String endPoint = "/channel/video/" + videoId + "/status";
         Map<String, String> params = new HashMap<>();
         params.put("status", status);
-        apiTemplate.makePutCall(centralApiUrl, endPoint, params, null);
+        apiTemplate.makePutCall(centralApiUrl, endPoint, params, null, authorization);
     }
 
-    public void updateVideoDetails(String videoId, VideoDetailsDTO videoDetailsDTO) {
+    public void updateVideoDetails(String videoId, VideoDetailsDTO videoDetailsDTO, String authorization) {
         log.info("Updating video details for {}", videoId);
         String endPoint = "/channel/video/" + videoId + "/details";
-        apiTemplate.makePutCall(centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO);
+        apiTemplate.makePutCall(centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO, authorization);
     }
     public boolean isValidToken(String token){
         String endPoint = "/security/validate-token/" + token;
@@ -73,6 +75,5 @@ public class CentralApiConnectionService {
     }
 
 }
-
 
 

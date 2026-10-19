@@ -38,6 +38,7 @@ public class VideoController {
     @PostMapping(value = "/upload", consumes = {"multipart/form-data"})
     public ResponseEntity uploadVideo(@RequestPart("videoFile")MultipartFile video,
                                       @RequestParam UUID channelId,
+                                      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
                                       @RequestPart(value = "videodetails", required = false) VideoDetailRequestBody videoDetails,
                                       @RequestPart(value = "videoDetails", required = false) VideoDetailRequestBody videoDetailsAlt){
 
@@ -54,7 +55,7 @@ public class VideoController {
                 generalMessage.setMessage("Video name is required.");
                 return new ResponseEntity(generalMessage, HttpStatus.BAD_REQUEST);
             }
-            VideoDetail videoDetail = uploadService.uploadVideo(video, channelId, payload);
+            VideoDetail videoDetail = uploadService.uploadVideo(video, channelId, payload, authorization);
             return new ResponseEntity(videoDetail, HttpStatus.CREATED); 
         }catch (InvalidFileType invalidFileType){
             GeneralMessage generalMessage = new GeneralMessage();

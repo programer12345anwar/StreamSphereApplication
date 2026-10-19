@@ -36,7 +36,8 @@ public class UploadService {
 
     public VideoDetail uploadVideo(MultipartFile video,
                                    UUID channelId,
-                                   VideoDetailRequestBody videoDetails) throws IOException {
+                                   VideoDetailRequestBody videoDetails,
+                                   String authorization) throws IOException {
         log.info("uploadVideo called in UploadService");
         if(!isVideoFile(video)){
             throw new InvalidFileType("File uploaded is not video");
@@ -64,10 +65,10 @@ public class UploadService {
         videoDetailsDTO.setVisibility("PUBLIC");
         
         log.info("Saving initial video details to central service with status PROCESSING");
-        centralApiConnectionService.saveVideoDetails(channelId, videoDetailsDTO);
+        centralApiConnectionService.saveVideoDetails(channelId, videoDetailsDTO, authorization);
         
         // Trigger asynchronous processing workflow
-        asyncVideoProcessor.processVideo(channelId, videoId, videoDetailsDTO, storedFilename);
+        asyncVideoProcessor.processVideo(channelId, videoId, videoDetailsDTO, storedFilename, authorization);
         
         return videoDetail;
     }
