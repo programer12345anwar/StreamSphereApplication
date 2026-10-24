@@ -78,7 +78,7 @@ const UploadPage = () => {
     setLoading(true);
     setUploadProgress(0);
     try {
-      await uploadVideo(channel.id, videoFile, {
+      const uploadedVideo = await uploadVideo(channel.id, videoFile, {
         name: form.name.trim(),
         description: form.description.trim(),
         tags: form.tags
@@ -91,8 +91,11 @@ const UploadPage = () => {
           setUploadProgress(Math.round((loaded * 100) / total));
         }
       });
-      toast({ title: "Video uploaded successfully" });
-      navigate("/");
+      toast({
+        title: "Video uploaded",
+        description: "It will appear on Home after processing is complete.",
+      });
+      navigate("/", { state: { uploadedVideoId: uploadedVideo?.videoId } });
     } catch (err) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
