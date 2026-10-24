@@ -17,6 +17,7 @@ const UploadPage = () => {
   const [videoFile, setVideoFile] = useState(null);
   const [form, setForm] = useState({ name: "", description: "", tags: "", isShort: false });
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [channel, setChannel] = useState(null);
   const [channelLoading, setChannelLoading] = useState(true);
 
@@ -75,6 +76,7 @@ const UploadPage = () => {
     }
 
     setLoading(true);
+    setUploadProgress(0);
     try {
       await uploadVideo(channel.id, videoFile, {
         name: form.name.trim(),
@@ -84,6 +86,10 @@ const UploadPage = () => {
           .map((t) => t.trim())
           .filter(Boolean),
         isShort: form.isShort,
+      }, ({ loaded, total }) => {
+        if (total) {
+          setUploadProgress(Math.round((loaded * 100) / total));
+        }
       });
       toast({ title: "Video uploaded successfully" });
       navigate("/");
@@ -194,6 +200,11 @@ const UploadPage = () => {
             </div>
 
             <div className="flex justify-end gap-3">
+              {loading && (
+                <p className="mr-auto self-center text-sm text-muted-foreground" role="status">
+                  Uploading video: {uploadProgress}%
+                </p>
+              )}
               <Button type="button" variant="ghost" onClick={() => navigate("/")}>Cancel</Button>
               <Button type="submit" className="rounded-full px-6" disabled={loading}>
                 {loading ? "Uploading..." : "Upload"}

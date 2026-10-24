@@ -53,6 +53,10 @@ round trip through Render's public edge. The Video service also uses its private
 enforced at the Gateway; it removes the browser `Origin` header before
 forwarding API requests so downstream services do not reject origins already
 allowed by the Gateway.
+Video uploads use a separate 10-minute gateway response timeout
+(`GATEWAY_UPLOAD_RESPONSE_TIMEOUT_MS`); other API routes retain the shorter
+`GATEWAY_RESPONSE_TIMEOUT`. This accommodates large uploads without increasing
+the wait time for unrelated requests.
 The API Gateway exposes `GET /api/config`, which returns the public API base URL
 from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
 Render environment variable and the `VITE_API_CONFIG_URL` value in both Vercel

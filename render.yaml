@@ -176,6 +176,8 @@ services:
         value: "10000"
       - key: GATEWAY_RESPONSE_TIMEOUT
         value: 30s
+      - key: GATEWAY_UPLOAD_RESPONSE_TIMEOUT_MS
+        value: "600000"
 
   - type: keyvalue
     name: streamsphere-redis

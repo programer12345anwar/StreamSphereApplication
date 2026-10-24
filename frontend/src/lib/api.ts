@@ -73,6 +73,7 @@ async function apiRequest(path, options = {}) {
       method: options.method || "GET",
       headers: options.headers,
       data: options.body,
+      onUploadProgress: options.onUploadProgress,
     });
     return response.status === 204 ? null : response.data;
   } catch (error) {
@@ -131,7 +132,7 @@ export async function getMyChannel(email) {
   });
 }
 
-export async function uploadVideo(channelId, videoFile, videoDetails) {
+export async function uploadVideo(channelId, videoFile, videoDetails, onUploadProgress) {
   const formData = new FormData();
   formData.append("videoFile", videoFile);
   formData.append(
@@ -143,6 +144,7 @@ export async function uploadVideo(channelId, videoFile, videoDetails) {
     method: "POST",
     headers: authHeaders(),
     body: formData,
+    onUploadProgress,
   });
 }
 
