@@ -45,15 +45,14 @@ module POMs.
 The Blueprint generates `CENTRAL_SECRET_KEY` automatically and wires the
 database, Redis, Central API, and gateway service URLs through Render references.
 Do not put secrets in `render.yaml` or commit a local `.env` file.
-The Gateway's Central API route uses `CENTRAL_SERVICE_URL`, set by the Blueprint
-to the public Central service URL. This explicit setting takes precedence over
-the private `CENTRAL_SERVICE_HOSTPORT` fallback. Browser CORS is enforced at the
-Gateway; it removes the browser `Origin` header before forwarding API requests
-so downstream services do not reject origins already allowed by the Gateway.
-The Gateway's Video route uses `VIDEO_SERVICE_URL`, and Video uses
-`CENTRAL_SERVICE_URL` for token validation and video metadata calls. The
-Blueprint sets these public service URLs explicitly to avoid relying on private
-host-port routing for these requests.
+The Gateway routes Central and Video API calls to their private Render
+host-port addresses (`CENTRAL_SERVICE_HOSTPORT` and `VIDEO_SERVICE_HOSTPORT`).
+These services are in the same region, so internal traffic avoids an unnecessary
+round trip through Render's public edge. The Video service also uses its private
+`CENTRAL_SERVICE_HOSTPORT` address for Central API calls. Browser CORS is
+enforced at the Gateway; it removes the browser `Origin` header before
+forwarding API requests so downstream services do not reject origins already
+allowed by the Gateway.
 The API Gateway exposes `GET /api/config`, which returns the public API base URL
 from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
 Render environment variable and the `VITE_API_CONFIG_URL` value in both Vercel

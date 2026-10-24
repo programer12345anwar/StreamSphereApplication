@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,16 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
 
   const redirectTo = location.state?.from?.pathname || "/";
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (submitting.current) {
+      return;
+    }
+    submitting.current = true;
     setLoading(true);
     try {
       const response = await loginUser({ email, password });
@@ -47,6 +52,7 @@ const LoginPage = () => {
         variant: "destructive",
       });
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };

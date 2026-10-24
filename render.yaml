@@ -138,8 +138,6 @@ services:
         value: 500MB
       - key: MAX_UPLOAD_REQUEST_SIZE
         value: 500MB
-      - key: CENTRAL_SERVICE_URL
-        value: https://streamsphere-central.onrender.com
       - key: CORS_ENABLED
         value: "true"
       - key: CORS_ALLOWED_ORIGINS
@@ -157,10 +155,6 @@ services:
     envVars:
       - key: PUBLIC_API_BASE_URL
         value: https://streamsphere-api-gateway.onrender.com
-      - key: CENTRAL_SERVICE_URL
-        value: https://streamsphere-central.onrender.com
-      - key: VIDEO_SERVICE_URL
-        value: https://streamsphere-video.onrender.com
       - key: CENTRAL_SERVICE_HOSTPORT
         fromService:
           type: web
