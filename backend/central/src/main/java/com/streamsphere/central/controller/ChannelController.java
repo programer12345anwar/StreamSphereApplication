@@ -60,12 +60,37 @@ public class ChannelController {
 
     @GetMapping("/{channelId}/upload-permission")
     public boolean canUploadToChannel(@PathVariable(name = "channelId") UUID channelId,
+                                      @RequestParam(name = "videoId", required = false) String videoId,
                                       org.springframework.security.core.Authentication authentication) {
         Channel channel = channelService.getChannelById(channelId);
-        return channel != null
+        boolean ownsChannel = channel != null
                 && authentication != null
                 && channel.getUser() != null
                 && authentication.getName().equalsIgnoreCase(channel.getUser().getEmail());
+        return ownsChannel && (videoId == null || videoService.videoBelongsToChannel(videoId, channelId));
+    }
+
+    @PutMapping("/{channelId}/video/{videoId}/media")
+    public void replaceVideoMedia(@PathVariable UUID channelId,
+                                  @PathVariable String videoId,
+                                  @RequestBody VideoDetailsDTO payload,
+                                  org.springframework.security.core.Authentication authentication) {
+        Channel channel = channelService.getChannelById(channelId);
+        if (channel == null
+                || authentication == null
+                || channel.getUser() == null
+                || !authentication.getName().equalsIgnoreCase(channel.getUser().getEmail())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not allowed to replace media for this channel.");
+        }
+        String videoLink = payload.getVideoLink();
+        if (videoLink == null || videoLink.isBlank()) {
+            throw new IllegalArgumentException("Video URL is required.");
+        }
+        if (!"https".equalsIgnoreCase(java.net.URI.create(videoLink).getScheme())) {
+            throw new IllegalArgumentException("Video URL must use HTTPS.");
+        }
+        videoService.replaceVideoMedia(channelId, videoId, videoLink);
     }
 
     @PutMapping("/video/{videoId}/status")

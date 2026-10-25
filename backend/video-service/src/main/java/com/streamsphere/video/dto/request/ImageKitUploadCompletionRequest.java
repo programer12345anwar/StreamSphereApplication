@@ -31,4 +31,5 @@ public class ImageKitUploadCompletionRequest {
     private List<String> tags;
     @com.fasterxml.jackson.annotation.JsonProperty("isShort")
     private boolean isShort;
+    private boolean replaceExisting;
 }

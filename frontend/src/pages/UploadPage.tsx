@@ -4,15 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMyChannel, uploadVideo } from "@/lib/api";
+import { getMyChannel, getVideoById, uploadVideo } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Film, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 const UploadPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const replaceVideoId = searchParams.get("replaceVideoId");
   const fileRef = useRef(null);
   const [videoFile, setVideoFile] = useState(null);
   const [form, setForm] = useState({ name: "", description: "", tags: "", isShort: false });
@@ -20,6 +22,7 @@ const UploadPage = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [channel, setChannel] = useState(null);
   const [channelLoading, setChannelLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -35,14 +38,31 @@ const UploadPage = () => {
       }
 
       setChannelLoading(true);
+      setLoadError("");
       try {
         const myChannel = await getMyChannel(user.email);
+        let replacementVideo = null;
+        if (replaceVideoId) {
+          replacementVideo = await getVideoById(replaceVideoId);
+          if (!myChannel?.id || replacementVideo.channelId !== myChannel.id) {
+            throw new Error("You can only replace media for a video on your own channel.");
+          }
+        }
         if (mounted) {
+          if (replacementVideo) {
+            setForm({
+              name: replacementVideo.title || replacementVideo.name || "",
+              description: replacementVideo.description || "",
+              tags: Array.isArray(replacementVideo.tags) ? replacementVideo.tags.join(", ") : "",
+              isShort: Boolean(replacementVideo.isShort),
+            });
+          }
           setChannel(myChannel || null);
         }
-      } catch {
+      } catch (error) {
         if (mounted) {
           setChannel(null);
+          setLoadError(error.message || "Unable to load the video to replace.");
         }
       } finally {
         if (mounted) {
@@ -56,7 +76,7 @@ const UploadPage = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.email]);
+  }, [user?.email, replaceVideoId]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -90,12 +110,17 @@ const UploadPage = () => {
         if (total) {
           setUploadProgress(Math.round((loaded * 100) / total));
         }
-      });
+      }, replaceVideoId);
       toast({
-        title: "Video uploaded",
-        description: "It will appear on Home after processing is complete.",
+        title: replaceVideoId ? "Video restored" : "Video uploaded",
+        description: replaceVideoId
+          ? "The existing video now points to the new durable media file."
+          : "It will appear on Home after processing is complete.",
       });
-      navigate("/", { state: { uploadedVideoId: uploadedVideo?.videoId } });
+      navigate(
+        replaceVideoId ? `/watch/${uploadedVideo?.videoId || replaceVideoId}` : "/",
+        { state: { uploadedVideoId: uploadedVideo?.videoId } },
+      );
     } catch (err) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
@@ -107,11 +132,19 @@ const UploadPage = () => {
     <Layout>
       <div className="mx-auto max-w-2xl p-6">
         <h1 className="text-2xl font-semibold text-foreground">Upload video</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Share your video with the world</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {replaceVideoId ? "Replace the missing media for this video" : "Share your video with the world"}
+        </p>
+        {replaceVideoId && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            You need the original video file. Existing title, description, tags, and view count will be kept.
+          </p>
+        )}
 
         {channelLoading && <p className="mt-4 text-sm text-muted-foreground">Fetching your channel...</p>}
+        {loadError && <p className="mt-4 text-sm text-red-500" role="alert">{loadError}</p>}
 
-        {!channelLoading && !channel && (
+        {!channelLoading && !channel && !loadError && (
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-3">
               <Film className="h-6 w-6 text-muted-foreground" />
@@ -168,6 +201,7 @@ const UploadPage = () => {
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 required
+                disabled={Boolean(replaceVideoId)}
                 placeholder="Add a title that describes your video"
               />
             </div>
@@ -178,6 +212,7 @@ const UploadPage = () => {
                 onChange={(e) => set("description", e.target.value)}
                 placeholder="Tell viewers about your video"
                 rows={4}
+                disabled={Boolean(replaceVideoId)}
               />
             </div>
             <div className="space-y-1.5">
@@ -186,6 +221,7 @@ const UploadPage = () => {
                 value={form.tags}
                 onChange={(e) => set("tags", e.target.value)}
                 placeholder="springboot, java, tutorial (comma separated)"
+                disabled={Boolean(replaceVideoId)}
               />
             </div>
             
@@ -195,6 +231,7 @@ const UploadPage = () => {
                 id="isShort"
                 checked={form.isShort}
                 onChange={(e) => set("isShort", e.target.checked)}
+                disabled={Boolean(replaceVideoId)}
                 className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
               />
               <label htmlFor="isShort" className="text-sm font-medium text-foreground cursor-pointer select-none">

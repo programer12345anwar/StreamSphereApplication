@@ -49,7 +49,13 @@ const SignupPage = () => {
         typeof response === "string" ? response : response?.token || response?.jwt || "";
 
       if (token) {
-        login({ name: form.name, email: form.email, role: response?.role, token });
+        login({
+          id: response?.id,
+          name: response?.name || form.name,
+          email: response?.email || form.email,
+          role: response?.role,
+          token,
+        });
         toast({ title: "Account created", description: "Welcome to StreamSphere!" });
         navigate("/", { replace: true });
       } else {

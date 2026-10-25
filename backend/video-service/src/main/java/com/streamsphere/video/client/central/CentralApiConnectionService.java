@@ -56,12 +56,31 @@ public class CentralApiConnectionService {
     }
 
     public boolean canUploadToChannel(UUID channelId, String authorization) {
+        return canUploadToChannel(channelId, null, authorization);
+    }
+
+    public boolean canUploadToChannel(UUID channelId, String videoId, String authorization) {
         URI endpoint = URI.create(centralApiUrl + "/channel/" + channelId + "/upload-permission");
+        if (videoId != null) {
+            endpoint = URI.create(endpoint + "?videoId=" + java.net.URLEncoder.encode(
+                    videoId, java.nio.charset.StandardCharsets.UTF_8));
+        }
         RequestEntity<Void> request = RequestEntity.get(endpoint)
                 .header(HttpHeaders.AUTHORIZATION, authorization)
                 .build();
         Boolean allowed = restTemplate.exchange(request, Boolean.class).getBody();
         return Boolean.TRUE.equals(allowed);
+    }
+
+    public void replaceVideoMedia(
+            UUID channelId, String videoId, String videoLink, String authorization) {
+        String endpoint = "/channel/" + channelId + "/video/" + videoId + "/media";
+        apiTemplate.makePutCall(
+                centralApiUrl,
+                endpoint,
+                new HashMap<>(),
+                Map.of("videoLink", videoLink),
+                authorization);
     }
 
     public void updateVideoStatus(String videoId, String status, String authorization) {
@@ -91,4 +110,3 @@ public class CentralApiConnectionService {
     }
 
 }
-

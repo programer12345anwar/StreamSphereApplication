@@ -1,6 +1,6 @@
 import axios from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getVideoById, resolveMediaUrl, uploadVideo } from "./api";
+import { getVideoById, isLegacyLocalMediaUrl, resolveMediaUrl, uploadVideo } from "./api";
 
 vi.mock("axios", () => ({
   default: {
@@ -37,6 +37,11 @@ describe("video media URLs", () => {
     );
     expect(resolveMediaUrl("https://cdn.example.com/video.mp4", "https://api.example.com"))
       .toBe("https://cdn.example.com/video.mp4");
+  });
+
+  it("identifies legacy local-storage media links for recovery messaging", () => {
+    expect(isLegacyLocalMediaUrl("/api/v1/video/stream/missing.mp4")).toBe(true);
+    expect(isLegacyLocalMediaUrl("https://cdn.example.com/video.mp4")).toBe(false);
   });
 
   it("uploads video bytes directly to ImageKit and only then completes metadata persistence", async () => {
@@ -83,5 +88,45 @@ describe("video media URLs", () => {
       data: expect.stringContaining('"fileId":"imagekit-file-1"'),
     });
     expect(result.videoId).toBe("video-1");
+  });
+
+  it("replaces media for an existing video without creating a new video ID", async () => {
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { apiBaseUrl: "https://api.example.com" },
+    });
+    vi.mocked(axios.request)
+      .mockResolvedValueOnce({
+        status: 200,
+        data: {
+          publicKey: "public-key",
+          videoId: "existing-video-id",
+          fileName: "existing-video-id.mp4",
+          folder: "/streamsphere/videos/channel-1",
+          authentication: { token: "upload-token", expire: "123", signature: "signed" },
+          replacement: true,
+        },
+      })
+      .mockResolvedValueOnce({
+        status: 201,
+        data: { videoId: "existing-video-id", videoUrl: "https://ik.example/video.mp4" },
+      });
+    vi.mocked(axios.post).mockResolvedValue({
+      data: { fileId: "replacement-file-id" },
+    });
+
+    await uploadVideo(
+      "channel-1",
+      new File(["replacement"], "clip.mp4", { type: "video/mp4" }),
+      { name: "Original title", description: "", tags: [], isShort: false },
+      undefined,
+      "existing-video-id",
+    );
+
+    expect(vi.mocked(axios.request).mock.calls[0][0].url)
+      .toContain("replaceVideoId=existing-video-id");
+    expect(vi.mocked(axios.request).mock.calls[1][0].data)
+      .toContain('"videoId":"existing-video-id"');
+    expect(vi.mocked(axios.request).mock.calls[1][0].data)
+      .toContain('"replaceExisting":true');
   });
 });

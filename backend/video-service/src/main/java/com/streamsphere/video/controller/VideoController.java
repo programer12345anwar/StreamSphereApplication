@@ -46,11 +46,12 @@ public class VideoController {
             @RequestParam UUID channelId,
             @RequestParam String fileName,
             @RequestParam long fileSize,
+            @RequestParam(required = false) String replaceVideoId,
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
         try {
             return ResponseEntity.ok(
                     uploadService.createImageKitUploadAuthorization(
-                            channelId, fileName, fileSize, authorization));
+                            channelId, fileName, fileSize, replaceVideoId, authorization));
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (IllegalArgumentException e) {
@@ -69,8 +70,10 @@ public class VideoController {
             @jakarta.validation.Valid @RequestBody ImageKitUploadCompletionRequest request,
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
         try {
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(uploadService.completeImageKitUpload(request, authorization));
+            VideoDetail video = uploadService.completeImageKitUpload(request, authorization);
+            return ResponseEntity.status(request.isReplaceExisting()
+                    ? HttpStatus.OK
+                    : HttpStatus.CREATED).body(video);
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (IllegalArgumentException e) {

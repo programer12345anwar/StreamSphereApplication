@@ -37,6 +37,7 @@ const LoginPage = () => {
       }
 
       login({
+        id: response?.id,
         name: email.split("@")[0],
         email,
         role: response?.role,

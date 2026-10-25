@@ -13,4 +13,5 @@ public class ImageKitUploadAuthorization {
     private String fileName;
     private String folder;
     private Map<String, String> authentication;
+    private boolean replacement;
 }

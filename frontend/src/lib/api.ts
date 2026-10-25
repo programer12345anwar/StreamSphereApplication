@@ -33,6 +33,12 @@ function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function requireUserId(userId) {
+  if (typeof userId !== "string" || !userId.trim() || userId === "undefined" || userId === "null") {
+    throw new Error("Your account profile is incomplete. Sign in again and retry.");
+  }
+}
+
 function authHeaders(extraHeaders = {}) {
   const token = getToken();
   if (!token) {
@@ -140,6 +146,12 @@ export async function validateToken(token) {
   });
 }
 
+export async function getCurrentUser() {
+  return apiRequest("/api/central/user/me", {
+    headers: authHeaders(),
+  });
+}
+
 export async function createChannel(data) {
   return apiRequest("/api/v1/central/channel/create", {
     method: "POST",
@@ -154,7 +166,13 @@ export async function getMyChannel(email) {
   });
 }
 
-export async function uploadVideo(channelId, videoFile, videoDetails, onUploadProgress) {
+export async function uploadVideo(
+  channelId,
+  videoFile,
+  videoDetails,
+  onUploadProgress,
+  replaceVideoId,
+) {
   if (!videoFile || typeof videoFile.type !== "string" || !videoFile.type.startsWith("video/")) {
     throw new Error("Choose a valid video file.");
   }
@@ -163,7 +181,7 @@ export async function uploadVideo(channelId, videoFile, videoDetails, onUploadPr
   }
 
   const authorization = await apiRequest(
-    `/api/v1/video/upload/authorization?channelId=${encodeURIComponent(channelId)}&fileName=${encodeURIComponent(videoFile.name)}&fileSize=${videoFile.size}`,
+    `/api/v1/video/upload/authorization?channelId=${encodeURIComponent(channelId)}&fileName=${encodeURIComponent(videoFile.name)}&fileSize=${videoFile.size}${replaceVideoId ? `&replaceVideoId=${encodeURIComponent(replaceVideoId)}` : ""}`,
     {
       method: "POST",
       headers: authHeaders(),
@@ -203,12 +221,26 @@ export async function uploadVideo(channelId, videoFile, videoDetails, onUploadPr
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
+      ...videoDetails,
       channelId,
       videoId: authorization.videoId,
       fileId: uploadedAsset.fileId,
-      ...videoDetails,
+      replaceExisting: Boolean(authorization.replacement),
     }),
   });
+}
+
+export function isLegacyLocalMediaUrl(mediaUrl) {
+  if (typeof mediaUrl !== "string" || !mediaUrl) {
+    return false;
+  }
+  try {
+    return new URL(mediaUrl, window.location.origin).pathname.startsWith(
+      "/api/v1/video/stream/",
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function getVideoFeed(limit = 30) {
@@ -223,6 +255,7 @@ export async function getVideoById(videoId) {
 }
 
 export async function subscribeToChannel(channelId, userId) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/channel/${channelId}/subscribe?userId=${encodeURIComponent(userId)}`,
     {
@@ -233,6 +266,7 @@ export async function subscribeToChannel(channelId, userId) {
 }
 
 export async function unsubscribeFromChannel(channelId, userId) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/channel/${channelId}/unsubscribe?userId=${encodeURIComponent(userId)}`,
     {
@@ -243,6 +277,7 @@ export async function unsubscribeFromChannel(channelId, userId) {
 }
 
 export async function checkSubscriptionStatus(channelId, userId) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/channel/${channelId}/check-subscription?userId=${encodeURIComponent(userId)}`,
     {
@@ -252,6 +287,7 @@ export async function checkSubscriptionStatus(channelId, userId) {
 }
 
 export async function toggleLikeVideo(videoId, userId, isLike) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/engagement/video/${videoId}/like?userId=${encodeURIComponent(userId)}&isLike=${isLike}`,
     {
@@ -262,6 +298,7 @@ export async function toggleLikeVideo(videoId, userId, isLike) {
 }
 
 export async function addCommentToVideo(videoId, userId, text, parentId = null) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/engagement/video/${videoId}/comment?userId=${encodeURIComponent(userId)}`,
     {
@@ -303,6 +340,7 @@ export async function getShorts(limit = 10) {
 }
 
 export async function getSubscriptionsFeed(userId, limit = 30) {
+  requireUserId(userId);
   const feed = await apiRequest(`/api/v1/central/videos/subscriptions?userId=${encodeURIComponent(userId)}&limit=${limit}`, {
     headers: authHeaders(),
   });
@@ -314,18 +352,21 @@ export async function searchChannels(query) {
 }
 
 export async function getSubscribedChannels(userId) {
+  requireUserId(userId);
   return apiRequest(`/api/v1/central/channel/subscribed?userId=${encodeURIComponent(userId)}`, {
     headers: authHeaders(),
   });
 }
 
 export async function getResumeTime(userId, videoId) {
+  requireUserId(userId);
   return apiRequest(`/api/v1/central/library/history/resume?userId=${encodeURIComponent(userId)}&videoId=${encodeURIComponent(videoId)}`, {
     headers: authHeaders(),
   });
 }
 
 export async function updateResumeTime(userId, videoId, resumeTime) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/library/history/resume?userId=${encodeURIComponent(userId)}&videoId=${encodeURIComponent(videoId)}&resumeTime=${Math.floor(resumeTime)}`,
     {
@@ -336,6 +377,7 @@ export async function updateResumeTime(userId, videoId, resumeTime) {
 }
 
 export async function reportVideo(userId, videoId, reason) {
+  requireUserId(userId);
   return apiRequest(
     `/api/v1/central/engagement/video/${encodeURIComponent(videoId)}/report?userId=${encodeURIComponent(userId)}`,
     {
@@ -394,12 +436,14 @@ export async function deletePlaylist(playlistId) {
 
 // Notifications
 export async function getNotifications(userId, page = 0, size = 20) {
+  requireUserId(userId);
   return apiRequest(`/api/v1/central/notifications?userId=${encodeURIComponent(userId)}&page=${page}&size=${size}`, {
     headers: authHeaders(),
   });
 }
 
 export async function getUnreadNotificationCount(userId) {
+  requireUserId(userId);
   return apiRequest(`/api/v1/central/notifications/unread-count?userId=${encodeURIComponent(userId)}`, {
     headers: authHeaders(),
   });
@@ -413,6 +457,7 @@ export async function markNotificationAsRead(id) {
 }
 
 export async function markAllNotificationsAsRead(userId) {
+  requireUserId(userId);
   return apiRequest(`/api/v1/central/notifications/read-all?userId=${encodeURIComponent(userId)}`, {
     method: "PUT",
     headers: authHeaders(),

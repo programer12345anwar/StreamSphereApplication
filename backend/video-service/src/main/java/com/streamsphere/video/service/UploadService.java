@@ -33,12 +33,19 @@ public class UploadService {
 
     private static final Pattern SAFE_EXTENSION = Pattern.compile("\\.[a-zA-Z0-9]{1,8}");
     public ImageKitUploadAuthorization createImageKitUploadAuthorization(
-            UUID channelId, String originalFilename, long fileSize, String authorization) {
+            UUID channelId,
+            String originalFilename,
+            long fileSize,
+            String replaceVideoId,
+            String authorization) {
         if (fileSize <= 0 || fileSize > maxUploadBytes) {
             throw new IllegalArgumentException("Video file size must be between 1 byte and "
                     + maxUploadBytes + " bytes.");
         }
-        if (!centralApiConnectionService.canUploadToChannel(channelId, authorization)) {
+        if (replaceVideoId != null && !replaceVideoId.matches("^[0-9a-fA-F-]{36}$")) {
+            throw new IllegalArgumentException("Replacement video ID is invalid.");
+        }
+        if (!centralApiConnectionService.canUploadToChannel(channelId, replaceVideoId, authorization)) {
             throw new org.springframework.security.access.AccessDeniedException(
                     "You are not allowed to upload to this channel.");
         }
@@ -48,13 +55,14 @@ public class UploadService {
             throw new IllegalStateException("ImageKit upload storage is not configured.");
         }
 
-        String videoId = UUID.randomUUID().toString();
+        String videoId = replaceVideoId == null ? UUID.randomUUID().toString() : replaceVideoId;
         int extensionIndex = originalFilename == null ? -1 : originalFilename.lastIndexOf('.');
         String extension = extensionIndex > 0 ? originalFilename.substring(extensionIndex) : "";
         if (!SAFE_EXTENSION.matcher(extension).matches()) {
             extension = ".mp4";
         }
-        String fileName = videoId + extension.toLowerCase(Locale.ROOT);
+        String replacementSuffix = replaceVideoId == null ? "" : "_" + UUID.randomUUID();
+        String fileName = videoId + replacementSuffix + extension.toLowerCase(Locale.ROOT);
         String folder = "/streamsphere/videos/" + channelId;
 
         return new ImageKitUploadAuthorization(
@@ -62,7 +70,8 @@ public class UploadService {
                 videoId,
                 fileName,
                 folder,
-                imageKit.getAuthenticationParameters());
+                imageKit.getAuthenticationParameters(),
+                replaceVideoId != null);
     }
 
     public VideoDetail completeImageKitUpload(
@@ -73,7 +82,10 @@ public class UploadService {
             io.imagekit.sdk.exceptions.UnauthorizedException,
             io.imagekit.sdk.exceptions.BadRequestException,
             io.imagekit.sdk.exceptions.UnknownException {
-        if (!centralApiConnectionService.canUploadToChannel(request.getChannelId(), authorization)) {
+        if (!centralApiConnectionService.canUploadToChannel(
+                request.getChannelId(),
+                request.isReplaceExisting() ? request.getVideoId() : null,
+                authorization)) {
             throw new org.springframework.security.access.AccessDeniedException(
                     "You are not allowed to upload to this channel.");
         }
@@ -99,18 +111,23 @@ public class UploadService {
             throw new IllegalArgumentException("Uploaded video URL is not hosted by the configured ImageKit account.");
         }
 
-        VideoDetailsDTO details = new VideoDetailsDTO();
-        details.setId(request.getVideoId());
-        details.setName(request.getName());
-        details.setDescription(request.getDescription());
-        details.setTags(request.getTags());
-        details.setShort(request.isShort());
-        details.setVideoLink(asset.getUrl());
-        details.setUploadDateTime(LocalDateTime.now());
-        details.setUpdatedAt(LocalDateTime.now());
-        details.setStatus("PUBLISHED");
-        details.setVisibility("PUBLIC");
-        centralApiConnectionService.saveVideoDetails(request.getChannelId(), details, authorization);
+        if (request.isReplaceExisting()) {
+            centralApiConnectionService.replaceVideoMedia(
+                    request.getChannelId(), request.getVideoId(), asset.getUrl(), authorization);
+        } else {
+            VideoDetailsDTO details = new VideoDetailsDTO();
+            details.setId(request.getVideoId());
+            details.setName(request.getName());
+            details.setDescription(request.getDescription());
+            details.setTags(request.getTags());
+            details.setShort(request.isShort());
+            details.setVideoLink(asset.getUrl());
+            details.setUploadDateTime(LocalDateTime.now());
+            details.setUpdatedAt(LocalDateTime.now());
+            details.setStatus("PUBLISHED");
+            details.setVisibility("PUBLIC");
+            centralApiConnectionService.saveVideoDetails(request.getChannelId(), details, authorization);
+        }
 
         VideoDetail response = new VideoDetail();
         response.setVideoId(request.getVideoId());

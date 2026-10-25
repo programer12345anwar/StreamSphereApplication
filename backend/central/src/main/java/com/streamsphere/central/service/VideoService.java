@@ -137,6 +137,27 @@ public class VideoService {
         videoRepo.save(video);
     }
 
+    @Transactional(readOnly = true)
+    public boolean videoBelongsToChannel(String videoId, UUID channelId) {
+        return videoRepo.findById(videoId)
+                .map(video -> video.getChannel() != null
+                        && channelId.equals(video.getChannel().getId()))
+                .orElse(false);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
+    public void replaceVideoMedia(UUID channelId, String videoId, String videoLink) {
+        Video video = videoRepo.findById(videoId)
+                .orElseThrow(() -> new IllegalArgumentException("Video not found."));
+        if (video.getChannel() == null || !channelId.equals(video.getChannel().getId())) {
+            throw new IllegalArgumentException("Video does not belong to the specified channel.");
+        }
+        video.setVideoLink(videoLink);
+        video.setUpdatedAt(java.time.LocalDateTime.now());
+        videoRepo.save(video);
+    }
+
     public void notifySubscibers(List<AppUser> subscribers){
         for(int i = 0; i < subscribers.size(); i++){
             AppUser subscriber = subscribers.get(i);

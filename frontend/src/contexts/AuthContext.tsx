@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getAuthToken, TOKEN_KEY, validateToken } from "@/lib/api";
+import { getAuthToken, getCurrentUser, TOKEN_KEY, validateToken } from "@/lib/api";
 
 const AuthContext = createContext({
   user: null,
@@ -33,8 +33,21 @@ export function AuthProvider({ children }) {
         const parsedUser = JSON.parse(storedUser);
         const validation = await validateToken(token);
         if (validation?.success) {
+          let currentUser = { ...parsedUser, token };
+          try {
+            const profile = await getCurrentUser();
+            currentUser = { ...currentUser, ...profile, token };
+          } catch (profileError) {
+            console.error("Failed to refresh the authenticated user profile", profileError);
+          }
           if (mounted) {
-            setUser({ ...parsedUser, token });
+            setUser(currentUser);
+            localStorage.setItem(USER_KEY, JSON.stringify({
+              id: currentUser.id,
+              name: currentUser.name,
+              email: currentUser.email,
+              role: currentUser.role,
+            }));
           }
         } else {
           localStorage.removeItem(USER_KEY);
@@ -59,7 +72,12 @@ export function AuthProvider({ children }) {
 
   const login = (u) => {
     setUser(u);
-    localStorage.setItem(USER_KEY, JSON.stringify({ name: u.name, email: u.email, role: u.role }));
+    localStorage.setItem(USER_KEY, JSON.stringify({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+    }));
     localStorage.setItem(TOKEN_KEY, u.token);
   };
 

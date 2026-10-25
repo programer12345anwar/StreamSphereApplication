@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import CommentsSection from "@/components/CommentsSection";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getResumeTime, updateResumeTime } from "@/lib/api";
+import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getMyChannel, getResumeTime, updateResumeTime, isLegacyLocalMediaUrl } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Download, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -19,6 +19,7 @@ const WatchPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [playbackError, setPlaybackError] = useState(false);
+  const [isChannelOwner, setIsChannelOwner] = useState(false);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -40,6 +41,7 @@ const WatchPage = () => {
       setLoading(true);
       setError("");
       setPlaybackError(false);
+      setIsChannelOwner(false);
 
       try {
         const [videoData, feed] = await Promise.all([getVideoById(videoId), getVideoFeed(20)]);
@@ -48,10 +50,23 @@ const WatchPage = () => {
         setVideo(videoData || null);
         setSuggested(Array.isArray(feed) ? feed.filter((item) => item.id !== videoId) : []);
 
+        if (user?.email && videoData?.channelId) {
+          try {
+            const channel = await getMyChannel(user.email);
+            if (mounted) {
+              setIsChannelOwner(channel?.id === videoData.channelId);
+            }
+          } catch (channelError) {
+            console.error("Failed to determine channel ownership", channelError);
+          }
+        } else if (mounted) {
+          setIsChannelOwner(false);
+        }
+
         // Record view silently
         recordVideoView(videoId).catch(() => {});
 
-        if (user && videoData?.channelId) {
+        if (user?.id && videoData?.channelId) {
           try {
             const [isSub, resumeTime] = await Promise.all([
               checkSubscriptionStatus(videoData.channelId, user.id),
@@ -157,7 +172,7 @@ const WatchPage = () => {
   };
 
   useEffect(() => {
-    if (!user || !videoId || !videoRef.current) return;
+    if (!user?.id || !videoId || !videoRef.current) return;
     
     const interval = setInterval(() => {
       const currentTime = videoRef.current?.currentTime;
@@ -198,8 +213,17 @@ const WatchPage = () => {
             </div>
             {playbackError && (
               <p className="mt-2 text-sm text-red-500" role="alert">
-                This video could not be played. The media may be unavailable or still processing.
+                {isLegacyLocalMediaUrl(video.videoLink)
+                  ? "This older video points to temporary server storage and its original file is missing. The channel owner must upload the original file again."
+                  : "This video could not be played. The media may be unavailable or still processing."}
               </p>
+            )}
+            {isLegacyLocalMediaUrl(video.videoLink) && isChannelOwner && (
+              <Button asChild className="mt-3 rounded-full">
+                <Link to={`/upload?replaceVideoId=${encodeURIComponent(video.id)}`}>
+                  Replace missing video file
+                </Link>
+              </Button>
             )}
 
             <h1 className="mt-4 text-xl font-semibold text-foreground">{video.title || "Untitled video"}</h1>
