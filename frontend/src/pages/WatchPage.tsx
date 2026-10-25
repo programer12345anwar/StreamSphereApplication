@@ -18,6 +18,7 @@ const WatchPage = () => {
   const [suggested, setSuggested] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [playbackError, setPlaybackError] = useState(false);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -38,6 +39,7 @@ const WatchPage = () => {
 
       setLoading(true);
       setError("");
+      setPlaybackError(false);
 
       try {
         const [videoData, feed] = await Promise.all([getVideoById(videoId), getVideoFeed(20)]);
@@ -183,14 +185,22 @@ const WatchPage = () => {
         <div className="flex flex-col gap-6 p-6 lg:flex-row">
           <div className="min-w-0 flex-1">
             <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
-              <video 
+              <video
                 ref={videoRef}
-                src={video.videoLink} 
-                controls 
+                src={video.videoLink}
+                controls
+                preload="metadata"
                 className="h-full w-full"
                 onLoadedMetadata={handleVideoLoaded}
+                onError={() => setPlaybackError(true)}
+                onLoadStart={() => setPlaybackError(false)}
               />
             </div>
+            {playbackError && (
+              <p className="mt-2 text-sm text-red-500" role="alert">
+                This video could not be played. The media may be unavailable or still processing.
+              </p>
+            )}
 
             <h1 className="mt-4 text-xl font-semibold text-foreground">{video.title || "Untitled video"}</h1>
 

@@ -33,6 +33,7 @@ public class JwtConfiguration {
                 .cors(cors -> cors.disable())
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/video/stream/**").permitAll()
                         .requestMatchers(FREE_RESOURCES).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -41,4 +42,3 @@ public class JwtConfiguration {
                 .build();
     }
 }
-

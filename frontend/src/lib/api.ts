@@ -44,24 +44,46 @@ function authHeaders(extraHeaders = {}) {
   };
 }
 
-function normalizeVideo(video) {
+export function resolveMediaUrl(mediaUrl, apiBaseUrl) {
+  if (typeof mediaUrl !== "string" || !mediaUrl || !mediaUrl.startsWith("/")) {
+    return mediaUrl;
+  }
+
+  return new URL(mediaUrl, `${apiBaseUrl.replace(/\/+$/, "")}/`).toString();
+}
+
+function normalizeVideo(video, apiBaseUrl) {
   if (!video || typeof video !== "object") {
     return video;
   }
 
   const title = video.title ?? video.name ?? "Untitled video";
   const uploadedAt = video.uploadedAt ?? video.uploadDateTime ?? video.createdAt ?? null;
+  const thumbnailLink = resolveMediaUrl(
+    video.thumbnailLink ?? video.thumbnailUrl ?? "",
+    apiBaseUrl,
+  );
 
   return {
     ...video,
     title,
     name: video.name ?? title,
     uploadedAt,
-    thumbnailLink: video.thumbnailLink ?? video.thumbnailUrl ?? "",
-    thumbnailUrl: video.thumbnailUrl ?? video.thumbnailLink ?? "",
+    videoLink: resolveMediaUrl(video.videoLink, apiBaseUrl),
+    thumbnailLink,
+    thumbnailUrl: thumbnailLink,
     channelName: video.channelName ?? video.channel?.name ?? "Unknown channel",
     tags: Array.isArray(video.tags) ? video.tags : []
   };
+}
+
+async function normalizeVideoFeed(feed) {
+  if (!Array.isArray(feed)) {
+    return [];
+  }
+
+  const apiBaseUrl = await getApiBaseUrl();
+  return feed.map((video) => normalizeVideo(video, apiBaseUrl));
 }
 
 async function apiRequest(path, options = {}) {
@@ -150,11 +172,13 @@ export async function uploadVideo(channelId, videoFile, videoDetails, onUploadPr
 
 export async function getVideoFeed(limit = 30) {
   const feed = await apiRequest(`/api/v1/central/videos?limit=${limit}`);
-  return Array.isArray(feed) ? feed.map(normalizeVideo) : [];
+  return normalizeVideoFeed(feed);
 }
 
 export async function getVideoById(videoId) {
-  return normalizeVideo(await apiRequest(`/api/v1/central/videos/${encodeURIComponent(videoId)}`));
+  const video = await apiRequest(`/api/v1/central/videos/${encodeURIComponent(videoId)}`);
+  const apiBaseUrl = await getApiBaseUrl();
+  return normalizeVideo(video, apiBaseUrl);
 }
 
 export async function subscribeToChannel(channelId, userId) {
@@ -224,24 +248,24 @@ export async function recordVideoView(videoId) {
 
 export async function searchVideos(query, limit = 30) {
   const feed = await apiRequest(`/api/v1/central/videos/search?q=${encodeURIComponent(query)}&limit=${limit}`);
-  return Array.isArray(feed) ? feed.map(normalizeVideo) : [];
+  return normalizeVideoFeed(feed);
 }
 
 export async function getTrendingFeed(limit = 30) {
   const feed = await apiRequest(`/api/v1/central/videos/trending?limit=${limit}`);
-  return Array.isArray(feed) ? feed.map(normalizeVideo) : [];
+  return normalizeVideoFeed(feed);
 }
 
 export async function getShorts(limit = 10) {
   const feed = await apiRequest(`/api/v1/central/videos/shorts?limit=${limit}`);
-  return Array.isArray(feed) ? feed.map(normalizeVideo) : [];
+  return normalizeVideoFeed(feed);
 }
 
 export async function getSubscriptionsFeed(userId, limit = 30) {
   const feed = await apiRequest(`/api/v1/central/videos/subscriptions?userId=${encodeURIComponent(userId)}&limit=${limit}`, {
     headers: authHeaders(),
   });
-  return Array.isArray(feed) ? feed.map(normalizeVideo) : [];
+  return normalizeVideoFeed(feed);
 }
 
 export async function searchChannels(query) {

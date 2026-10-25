@@ -44,7 +44,11 @@ public class LocalVideoStorageServiceImpl implements VideoStorageService {
     @Override
     public Resource loadVideoAsResource(String filename) {
         try {
-            Path file = rootLocation.resolve(filename);
+            Path storageRoot = rootLocation.toAbsolutePath().normalize();
+            Path file = storageRoot.resolve(filename).normalize();
+            if (!file.startsWith(storageRoot)) {
+                throw new IllegalArgumentException("Cannot read files outside the video storage directory.");
+            }
             Resource resource = new UrlResource(file.toUri());
             if (resource.exists() || resource.isReadable()) {
                 return resource;
