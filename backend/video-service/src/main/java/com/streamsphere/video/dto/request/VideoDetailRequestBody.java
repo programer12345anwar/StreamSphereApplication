@@ -14,6 +14,7 @@ public class VideoDetailRequestBody {
     String description;
 
     java.util.List<String> tags;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("isShort")
+    boolean isShort;
 }
-
-

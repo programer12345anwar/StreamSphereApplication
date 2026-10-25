@@ -8,11 +8,15 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.RequestEntity;
+import org.springframework.web.client.RestTemplate;
 
 import com.streamsphere.video.dto.response.IsValidDTO;
 import com.streamsphere.video.dto.response.SecurityCredential;
 import com.streamsphere.video.dto.request.VideoDetailsDTO;
 import com.streamsphere.video.client.central.ApiTemplate;
+import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -26,6 +30,9 @@ public class CentralApiConnectionService {
 
     @Autowired
     ModelMapper mapper;
+
+    @Autowired
+    RestTemplate restTemplate;
 
     @Value("${central.api.url}")
     String centralApiUrl;
@@ -46,6 +53,15 @@ public class CentralApiConnectionService {
         } else {
             log.info("Response over central API connection: " + resp.getClass());
         }
+    }
+
+    public boolean canUploadToChannel(UUID channelId, String authorization) {
+        URI endpoint = URI.create(centralApiUrl + "/channel/" + channelId + "/upload-permission");
+        RequestEntity<Void> request = RequestEntity.get(endpoint)
+                .header(HttpHeaders.AUTHORIZATION, authorization)
+                .build();
+        Boolean allowed = restTemplate.exchange(request, Boolean.class).getBody();
+        return Boolean.TRUE.equals(allowed);
     }
 
     public void updateVideoStatus(String videoId, String status, String authorization) {
@@ -75,5 +91,4 @@ public class CentralApiConnectionService {
     }
 
 }
-
 

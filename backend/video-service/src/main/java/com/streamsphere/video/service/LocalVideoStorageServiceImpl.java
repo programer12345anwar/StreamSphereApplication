@@ -5,6 +5,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
@@ -50,11 +52,15 @@ public class LocalVideoStorageServiceImpl implements VideoStorageService {
                 throw new IllegalArgumentException("Cannot read files outside the video storage directory.");
             }
             Resource resource = new UrlResource(file.toUri());
-            if (resource.exists() || resource.isReadable()) {
+            if (resource.exists() && resource.isReadable()) {
                 return resource;
             } else {
-                throw new RuntimeException("Could not read file: " + filename);
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Video asset was not found.");
             }
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Could not read file: " + filename, e);
         }

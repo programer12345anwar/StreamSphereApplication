@@ -13,12 +13,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.streamsphere.video.dto.response.GeneralMessage;
 import com.streamsphere.video.dto.response.VideoDetail;
-import com.streamsphere.video.dto.request.VideoDetailRequestBody;
-import com.streamsphere.video.exception.InvalidFileType;
+import com.streamsphere.video.dto.response.ImageKitUploadAuthorization;
+import com.streamsphere.video.dto.request.ImageKitUploadCompletionRequest;
 import com.streamsphere.video.service.UploadService;
 import com.streamsphere.video.service.VideoStorageService;
 
@@ -36,36 +35,55 @@ public class VideoController {
     VideoStorageService videoStorageService;
 
     @PostMapping(value = "/upload", consumes = {"multipart/form-data"})
-    public ResponseEntity uploadVideo(@RequestPart("videoFile")MultipartFile video,
-                                      @RequestParam UUID channelId,
-                                      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
-                                      @RequestPart(value = "videodetails", required = false) VideoDetailRequestBody videoDetails,
-                                      @RequestPart(value = "videoDetails", required = false) VideoDetailRequestBody videoDetailsAlt){
+    public ResponseEntity<GeneralMessage> rejectLegacyLocalUpload() {
+        GeneralMessage message = new GeneralMessage();
+        message.setMessage("Use the ImageKit authorization and completion upload endpoints.");
+        return ResponseEntity.status(HttpStatus.GONE).body(message);
+    }
 
-        try{
-            log.info("received call to upload video at video controller");
-            VideoDetailRequestBody payload = videoDetails != null ? videoDetails : videoDetailsAlt;
-            if (payload == null) {
-                GeneralMessage generalMessage = new GeneralMessage();
-                generalMessage.setMessage("Missing video details payload.");
-                return new ResponseEntity(generalMessage, HttpStatus.BAD_REQUEST);
-            }
-            if (payload.getName() == null || payload.getName().isBlank()) {
-                GeneralMessage generalMessage = new GeneralMessage();
-                generalMessage.setMessage("Video name is required.");
-                return new ResponseEntity(generalMessage, HttpStatus.BAD_REQUEST);
-            }
-            VideoDetail videoDetail = uploadService.uploadVideo(video, channelId, payload, authorization);
-            return new ResponseEntity(videoDetail, HttpStatus.CREATED); 
-        }catch (InvalidFileType invalidFileType){
-            GeneralMessage generalMessage = new GeneralMessage();
-            generalMessage.setMessage(invalidFileType.getMessage());
-            return new ResponseEntity(generalMessage, HttpStatus.BAD_REQUEST);
-        }catch (Exception e){
-            log.error("Video upload failed", e);
-            GeneralMessage generalMessage = new GeneralMessage();
-            generalMessage.setMessage("Video upload failed");
-            return new ResponseEntity(generalMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+    @PostMapping("/upload/authorization")
+    public ResponseEntity<ImageKitUploadAuthorization> createUploadAuthorization(
+            @RequestParam UUID channelId,
+            @RequestParam String fileName,
+            @RequestParam long fileSize,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+        try {
+            return ResponseEntity.ok(
+                    uploadService.createImageKitUploadAuthorization(
+                            channelId, fileName, fileSize, authorization));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException e) {
+            log.error("ImageKit upload storage is not configured", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        } catch (org.springframework.web.client.RestClientException e) {
+            log.error("Could not verify channel upload permission", e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
+    }
+
+    @PostMapping("/upload/complete")
+    public ResponseEntity<VideoDetail> completeImageKitUpload(
+            @jakarta.validation.Valid @RequestBody ImageKitUploadCompletionRequest request,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(uploadService.completeImageKitUpload(request, authorization));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (io.imagekit.sdk.exceptions.ForbiddenException
+                 | io.imagekit.sdk.exceptions.TooManyRequestsException
+                 | io.imagekit.sdk.exceptions.InternalServerException
+                 | io.imagekit.sdk.exceptions.UnauthorizedException
+                 | io.imagekit.sdk.exceptions.BadRequestException
+                 | io.imagekit.sdk.exceptions.UnknownException
+                 | org.springframework.web.client.RestClientException e) {
+            log.error("Could not persist ImageKit video metadata", e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
         }
     }
 
@@ -92,6 +110,10 @@ public class VideoController {
                         .contentType(MediaTypeFactory.getMediaType(video).orElse(MediaType.APPLICATION_OCTET_STREAM))
                         .body(region);
             }
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             log.error("Failed to stream video", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

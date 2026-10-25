@@ -58,6 +58,16 @@ public class ChannelController {
         videoService.saveVideoDetails(channelId, videoDetailsDTO);
     }
 
+    @GetMapping("/{channelId}/upload-permission")
+    public boolean canUploadToChannel(@PathVariable(name = "channelId") UUID channelId,
+                                      org.springframework.security.core.Authentication authentication) {
+        Channel channel = channelService.getChannelById(channelId);
+        return channel != null
+                && authentication != null
+                && channel.getUser() != null
+                && authentication.getName().equalsIgnoreCase(channel.getUser().getEmail());
+    }
+
     @PutMapping("/video/{videoId}/status")
     public void updateVideoStatus(@PathVariable(name = "videoId") String videoId,
                                   @RequestParam(name = "status") String status) {
@@ -121,4 +131,3 @@ public class ChannelController {
     
     
 }
-

@@ -155,18 +155,59 @@ export async function getMyChannel(email) {
 }
 
 export async function uploadVideo(channelId, videoFile, videoDetails, onUploadProgress) {
-  const formData = new FormData();
-  formData.append("videoFile", videoFile);
-  formData.append(
-    "videodetails",
-    new Blob([JSON.stringify(videoDetails)], { type: "application/json" }),
-  );
+  if (!videoFile || typeof videoFile.type !== "string" || !videoFile.type.startsWith("video/")) {
+    throw new Error("Choose a valid video file.");
+  }
+  if (videoFile.size <= 0 || videoFile.size > 500 * 1024 * 1024) {
+    throw new Error("Video files must be between 1 byte and 500 MB.");
+  }
 
-  return apiRequest(`/api/v1/video/upload?channelId=${encodeURIComponent(channelId)}`, {
+  const authorization = await apiRequest(
+    `/api/v1/video/upload/authorization?channelId=${encodeURIComponent(channelId)}&fileName=${encodeURIComponent(videoFile.name)}&fileSize=${videoFile.size}`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+    },
+  );
+  const formData = new FormData();
+  formData.append("file", videoFile);
+  formData.append("fileName", authorization.fileName);
+  formData.append("folder", authorization.folder);
+  formData.append("publicKey", authorization.publicKey);
+  formData.append("useUniqueFileName", "false");
+  Object.entries(authorization.authentication || {}).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  let uploadedAsset;
+  try {
+    const response = await axios.post(
+      "https://upload.imagekit.io/api/v1/files/upload",
+      formData,
+      { onUploadProgress },
+    );
+    uploadedAsset = response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message || error.message;
+      throw new Error(`ImageKit upload failed: ${message}`);
+    }
+    throw error;
+  }
+
+  if (!uploadedAsset?.fileId) {
+    throw new Error("ImageKit did not return an uploaded file ID.");
+  }
+
+  return apiRequest("/api/v1/video/upload/complete", {
     method: "POST",
-    headers: authHeaders(),
-    body: formData,
-    onUploadProgress,
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      channelId,
+      videoId: authorization.videoId,
+      fileId: uploadedAsset.fileId,
+      ...videoDetails,
+    }),
   });
 }
 
