@@ -34,6 +34,6 @@ class LocalVideoStorageServiceImplTest {
         ReflectionTestUtils.setField(storage, "storageLocation", storageDirectory.toString());
         storage.init();
 
-        assertThrows(IllegalArgumentException.class, () -> storage.loadVideoAsResource("..\\secret.mp4"));
+        assertThrows(IllegalArgumentException.class, () -> storage.loadVideoAsResource("../secret.mp4"));
     }
 }
