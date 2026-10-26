@@ -1,8 +1,10 @@
 package com.streamsphere.video.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +34,8 @@ public class UploadService {
     long maxUploadBytes;
 
     private static final Pattern SAFE_EXTENSION = Pattern.compile("\\.[a-zA-Z0-9]{1,8}");
+    private static final Duration IMAGEKIT_AUTHORIZATION_LIFETIME = Duration.ofMinutes(30);
+
     public ImageKitUploadAuthorization createImageKitUploadAuthorization(
             UUID channelId,
             String originalFilename,
@@ -56,6 +60,7 @@ public class UploadService {
         }
 
         String videoId = replaceVideoId == null ? UUID.randomUUID().toString() : replaceVideoId;
+        long expiresAt = Instant.now().plus(IMAGEKIT_AUTHORIZATION_LIFETIME).getEpochSecond();
         int extensionIndex = originalFilename == null ? -1 : originalFilename.lastIndexOf('.');
         String extension = extensionIndex > 0 ? originalFilename.substring(extensionIndex) : "";
         if (!SAFE_EXTENSION.matcher(extension).matches()) {
@@ -70,7 +75,7 @@ public class UploadService {
                 videoId,
                 fileName,
                 folder,
-                imageKit.getAuthenticationParameters(),
+                imageKit.getAuthenticationParameters(null, expiresAt),
                 replaceVideoId != null);
     }
 

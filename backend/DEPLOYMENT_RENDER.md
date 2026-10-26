@@ -61,9 +61,11 @@ New browser uploads use short-lived Video service authorization and upload
 directly to ImageKit, so video bytes do not pass through the API Gateway or
 depend on the Video container's ephemeral filesystem. Keep the ImageKit public
 key and URL endpoint configured on the Video service, and keep the private key
-secret in Render. The authenticated account must permit the deployed frontend
-origin to upload. After this change is deployed, re-upload any video whose old
-local file was lost; its PostgreSQL row alone cannot restore the original media.
+secret in Render. Upload authorization expires 30 minutes after issue using a
+Unix timestamp in seconds. The authenticated account must permit the deployed
+frontend origin to upload. After this change is deployed, re-upload any video
+whose old local file was lost; its PostgreSQL row alone cannot restore the
+original media.
 The API Gateway exposes `GET /api/config`, which returns the public API base URL
 from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
 Render environment variable and the `VITE_API_CONFIG_URL` value in both Vercel
