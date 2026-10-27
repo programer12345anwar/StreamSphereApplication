@@ -29,7 +29,9 @@ module POMs.
      `RABBITMQ_PASSWORD`, and the exact `RABBITMQ_VIRTUAL_HOST` for both
      Central and Notification.
    - `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, and `IMAGE_PRIVATE_KEY` for Video.
-   - `MAIL_USERNAME` and `MAIL_PASSWORD` for Notification.
+   - `MAIL_USERNAME` and `MAIL_PASSWORD` for Notification. For Gmail, use the
+     sender's full email address and a Google App Password (not the normal
+     account password); ensure 2-Step Verification and App Passwords are enabled.
    - `PLATFORM_BASE_URL` and `PLATFORM_LOGO_URL` for Notification.
    - `CORS_ALLOWED_ORIGINS` for each service. Enter the exact HTTPS frontend and
      admin origins, comma-separated, without a trailing slash.
@@ -123,4 +125,7 @@ then persists verified video metadata through
 - Use exact frontend/admin HTTPS origins in CORS settings.
 - Keep ImageKit, RabbitMQ, SMTP, and database credentials only in Render's
   Environment settings.
+- Configure `MAIL_USERNAME` and `MAIL_PASSWORD` on the
+  `streamsphere-notification` service. Check its logs for notification delivery
+  errors and its `notification-queue.dlq` dead-letter queue after retries.
 - Rotate any credentials that were exposed or used in local development.

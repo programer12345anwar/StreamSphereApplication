@@ -27,7 +27,7 @@ public class DuplicateMessageGuard {
             });
 
     public boolean isDuplicate(NotificationMessage message) {
-        String key = message.getType() + "|" + message.getEmail() + "|" + message.getName();
+        String key = keyFor(message);
         synchronized (seen) {
             if (seen.containsKey(key)) {
                 return true;
@@ -36,5 +36,14 @@ public class DuplicateMessageGuard {
             return false;
         }
     }
-}
 
+    public void forget(NotificationMessage message) {
+        synchronized (seen) {
+            seen.remove(keyFor(message));
+        }
+    }
+
+    private String keyFor(NotificationMessage message) {
+        return message.getType() + "|" + message.getEmail() + "|" + message.getName();
+    }
+}

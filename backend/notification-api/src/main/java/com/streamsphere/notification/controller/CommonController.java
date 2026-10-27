@@ -26,16 +26,14 @@ public class CommonController {
     @Autowired
     DuplicateMessageGuard duplicateMessageGuard;
 
-
-        @RabbitListener(queues = "${rabbitmq.queue.name}")
+    @RabbitListener(queues = "${rabbitmq.queue.name}")
     public void consumeMessage(@Payload NotificationMessage message) throws Exception {
-        log.info("Notification Message received successfully payload = {}", message.toString());
-        if (message.getType() == null || message.getEmail() == null) {
-            log.warn("Dropping malformed notification message: {}", message);
+        if (message == null || message.getType() == null || message.getEmail() == null) {
+            log.warn("Dropping malformed notification message");
             return;
         }
         if (duplicateMessageGuard.isDuplicate(message)) {
-            log.warn("Skipping duplicate notification message type={} email={}", message.getType(), message.getEmail());
+            log.warn("Skipping duplicate notification message type={}", message.getType());
             return;
         }
         try {
@@ -64,8 +62,10 @@ public class CommonController {
                 log.warn("Unknown notification type: {}", message.getType());
             }
         } catch (Exception e) {
-            log.error("Failed to send notification email (likely due to missing SMTP config). Gracefully logging instead of crashing: {}", e.getMessage());
-            // Intentionally not re-throwing to avoid infinite RabbitMQ requeue loops without DLQ
+            duplicateMessageGuard.forget(message);
+            log.error("Failed to process notification type {}; it will be retried and dead-lettered after configured attempts",
+                    message.getType(), e);
+            throw e;
         }
     }
 
@@ -80,4 +80,3 @@ public class CommonController {
         return "Notification received for testing: " + message.getType();
     }
 }
-

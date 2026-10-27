@@ -46,7 +46,7 @@ public class CommonUserService {
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage);
         mimeMessageHelper.setTo(notificationMessage.getEmail());
-        mimeMessageHelper.setSubject("Welcome to Youtube!");
+        mimeMessageHelper.setSubject("Welcome to " + platformName + "!");
         mimeMessageHelper.setText(htmlEmailContent, true);
         log.info("Mimemessage created calling mail service to send mail");
         mailService.sendEmail(mimeMessage);

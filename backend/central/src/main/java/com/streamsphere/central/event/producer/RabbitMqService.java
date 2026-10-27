@@ -29,11 +29,9 @@ public class RabbitMqService {
         try {
             rabbitTemplate.convertAndSend(exchangeName, routingKey, message);
         } catch (RuntimeException ex) {
-            // Swallowing exceptions for local/dev when RabbitMQ is not available.
-            log.warn("Unable to send message to RabbitMQ (exchange={}, routingKey={}). Registration will continue without messaging. Cause: {}",
-                    exchangeName, routingKey, ex.getMessage());
+            log.error("Notification was not queued (exchange={}, routingKey={}); it will not be delivered",
+                    exchangeName, routingKey, ex);
         }
     }
 }
-
 
