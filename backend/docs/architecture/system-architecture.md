@@ -81,7 +81,8 @@ flowchart LR
 
 - Creates short-lived ImageKit upload authorization and accepts upload
   completion metadata.
-- Checks channel ownership through an authenticated Central service call.
+- Checks channel ownership through an authenticated Central service call and
+  enforces a configurable 100 MiB default upload limit.
 - Verifies ImageKit's file ID, expected folder/name, media type, size, and CDN
   host before asking Central to store the metadata.
 - Does not proxy current browser-uploaded file bytes through the Video service
@@ -132,7 +133,7 @@ prove that the referenced file still exists.
 ### New video upload
 
 1. An authenticated channel owner chooses a video in the frontend. The client
-   rejects non-video MIME types and files larger than 500 MiB.
+   rejects non-video MIME types and files larger than 100 MiB by default.
 2. Frontend requests
    `POST /api/v1/video/upload/authorization` with the channel ID, file name, and
    size.

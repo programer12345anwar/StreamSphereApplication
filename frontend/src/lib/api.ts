@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 const API_CONFIG_URL =
   import.meta.env.VITE_API_CONFIG_URL || "https://streamsphere-api-gateway.onrender.com";
 const TOKEN_KEY = "streamsphere_token";
@@ -176,8 +178,8 @@ export async function uploadVideo(
   if (!videoFile || typeof videoFile.type !== "string" || !videoFile.type.startsWith("video/")) {
     throw new Error("Choose a valid video file.");
   }
-  if (videoFile.size <= 0 || videoFile.size > 500 * 1024 * 1024) {
-    throw new Error("Video files must be between 1 byte and 500 MB.");
+  if (videoFile.size <= 0 || videoFile.size > MAX_VIDEO_UPLOAD_BYTES) {
+    throw new Error("Video files must be between 1 byte and 100 MiB (104,857,600 bytes).");
   }
 
   const authorization = await apiRequest(

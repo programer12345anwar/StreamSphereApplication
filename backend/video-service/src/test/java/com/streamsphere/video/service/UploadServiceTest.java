@@ -11,11 +11,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.ArgumentCaptor;
 
@@ -36,7 +38,7 @@ class UploadServiceTest {
 
         ReflectionTestUtils.setField(uploadService, "centralApiConnectionService", centralApi);
         ReflectionTestUtils.setField(uploadService, "imageKit", imageKit);
-        ReflectionTestUtils.setField(uploadService, "maxUploadBytes", 500L * 1024 * 1024);
+        ReflectionTestUtils.setField(uploadService, "maxUploadBytes", 100L * 1024 * 1024);
         when(centralApi.canUploadToChannel(channelId, null, "Bearer token")).thenReturn(true);
         when(imageKit.getConfig()).thenReturn(configuration);
         when(imageKit.getAuthenticationParameters(isNull(), anyLong())).thenReturn(authentication);
@@ -51,5 +53,21 @@ class UploadServiceTest {
         assertTrue(expiresAt > now, "expiry must be in the future");
         assertTrue(expiresAt < now + 3600, "expiry must be less than one hour away");
         assertEquals(authentication, result.getAuthentication());
+    }
+
+    @Test
+    void rejectsFilesAboveConfiguredLimitBeforeCheckingChannelPermission() {
+        UploadService uploadService = new UploadService();
+        CentralApiConnectionService centralApi = mock(CentralApiConnectionService.class);
+        ReflectionTestUtils.setField(uploadService, "centralApiConnectionService", centralApi);
+        ReflectionTestUtils.setField(uploadService, "maxUploadBytes", 100L * 1024 * 1024);
+
+        var exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> uploadService.createImageKitUploadAuthorization(
+                        UUID.randomUUID(), "large.mp4", 100L * 1024 * 1024 + 1, null, "Bearer token"));
+
+        assertTrue(exception.getMessage().contains("104857600"));
+        verifyNoInteractions(centralApi);
     }
 }

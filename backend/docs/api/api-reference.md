@@ -125,11 +125,12 @@ Example completion request:
 }
 ```
 
-The authenticated user must own `channelId`. Accepted video size is currently
-limited to 500 MiB by the application default; deployment configuration must
-keep proxy/client/ImageKit limits consistent. The frontend also checks that the
-browser-provided MIME type starts with `video/`; the server independently
-verifies the MIME type reported by ImageKit.
+The authenticated user must own `channelId`. Accepted video size defaults to
+100 MiB (104,857,600 bytes), matching the current ImageKit account limit. The
+Video service limit can be configured with `VIDEO_UPLOAD_MAX_BYTES`; when
+changing it, keep the frontend validation and the ImageKit account limit in
+sync. The frontend also checks that the browser-provided MIME type starts with
+`video/`; the server independently verifies the MIME type reported by ImageKit.
 
 To restore an existing video whose old local file is gone, the channel owner
 must still have the original source file. Start from the watch page's

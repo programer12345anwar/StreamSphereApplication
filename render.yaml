@@ -134,6 +134,8 @@ services:
           type: web
           name: streamsphere-central
           property: hostport
+      - key: VIDEO_UPLOAD_MAX_BYTES
+        value: "104857600"
       - key: MAX_UPLOAD_FILE_SIZE
         value: 500MB
       - key: MAX_UPLOAD_REQUEST_SIZE

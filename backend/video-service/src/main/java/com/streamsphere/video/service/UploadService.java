@@ -30,7 +30,7 @@ public class UploadService {
     @Autowired
     ImageKit imageKit;
 
-    @Value("${video.upload.max-bytes:524288000}")
+    @Value("${video.upload.max-bytes:104857600}")
     long maxUploadBytes;
 
     private static final Pattern SAFE_EXTENSION = Pattern.compile("\\.[a-zA-Z0-9]{1,8}");

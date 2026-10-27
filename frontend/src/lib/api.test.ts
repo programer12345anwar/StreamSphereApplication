@@ -44,6 +44,19 @@ describe("video media URLs", () => {
     expect(isLegacyLocalMediaUrl("https://cdn.example.com/video.mp4")).toBe(false);
   });
 
+  it("rejects files above the ImageKit account limit before requesting authorization", async () => {
+    await expect(
+      uploadVideo(
+        "channel-1",
+        { name: "large.mp4", type: "video/mp4", size: 100 * 1024 * 1024 + 1 },
+        { name: "Large video", description: "", tags: [], isShort: false },
+      ),
+    ).rejects.toThrow("100 MiB (104,857,600 bytes)");
+
+    expect(axios.request).not.toHaveBeenCalled();
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
   it("uploads video bytes directly to ImageKit and only then completes metadata persistence", async () => {
     vi.mocked(axios.get).mockResolvedValue({
       data: { apiBaseUrl: "https://api.example.com" },

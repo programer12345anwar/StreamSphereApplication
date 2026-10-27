@@ -111,7 +111,7 @@ also have module-level examples. Key settings include:
 | Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_TIMEOUT` |
 | RabbitMQ | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST`, `SPRING_RABBITMQ_SSL_ENABLED` |
 | ImageKit | `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, `IMAGE_PRIVATE_KEY` |
-| Upload limit | `MAX_UPLOAD_FILE_SIZE`, `MAX_UPLOAD_REQUEST_SIZE`; Video service also has `VIDEO_UPLOAD_MAX_BYTES` defaulting to 500 MiB |
+| Upload limit | `VIDEO_UPLOAD_MAX_BYTES` defaults to 100 MiB to match the current ImageKit account limit. Keep the frontend and ImageKit limits aligned if changing it. `MAX_UPLOAD_FILE_SIZE` and `MAX_UPLOAD_REQUEST_SIZE` apply only to legacy multipart server uploads. |
 | Service addresses | `CENTRAL_API_URL`, `CENTRAL_SERVICE_URL`, `VIDEO_SERVICE_URL`, `NOTIFICATION_SERVICE_URL` |
 | Browser access | `CORS_ENABLED`, `CORS_ALLOWED_ORIGINS` |
 | Gateway runtime config | `PUBLIC_API_BASE_URL` |
@@ -187,6 +187,12 @@ deployed a revision.
 5. Create or locate a channel owned by that account.
 6. Upload a small test video; inspect Network requests:
    authorization -> ImageKit upload -> completion.
+   If `POST /api/v1/video/upload?channelId=...` returns `410 Gone`, the browser
+   is running an outdated frontend bundle. Redeploy the current frontend from
+   the repository's `frontend` project root, then hard-refresh and verify the
+   browser requests `/api/v1/video/upload/authorization`, uploads to ImageKit,
+   and calls `/api/v1/video/upload/complete`. Do not re-enable the legacy
+   multipart endpoint; it stores files on ephemeral local disk.
 7. Confirm the saved `video_link` is an HTTPS ImageKit URL and playback works
    directly from the CDN, including range/seek behavior.
 8. Verify database metadata separately from ImageKit media storage. A row with
@@ -235,6 +241,7 @@ profile `id`.
 | --- | --- |
 | Home says no videos | Central feed only includes `PUBLISHED` + `PUBLIC`; inspect query result, status, visibility, and whether the cache was invalidated |
 | Metadata exists but playback fails | Compare `videoLink` to the actual ImageKit URL; check asset existence, CDN response, HTTPS host, and browser Network request |
+| Upload returns 410 from `/api/v1/video/upload` | The deployed browser bundle is outdated; deploy the current `frontend` app and verify it uses ImageKit authorization/upload/completion |
 | Upload authorization is 403 | Confirm JWT is present and authenticated email owns the channel |
 | Authorization is 503 | Check Video service ImageKit public key/configuration |
 | ImageKit upload is blocked | Verify signed fields, ImageKit account restrictions, CORS/security allowlist, and endpoint |
