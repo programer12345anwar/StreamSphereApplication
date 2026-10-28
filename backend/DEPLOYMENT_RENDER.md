@@ -46,6 +46,7 @@ module POMs.
 
 The Blueprint generates `CENTRAL_SECRET_KEY` automatically and wires the
 database, Redis, Central API, and gateway service URLs through Render references.
+
 Do not put secrets in `render.yaml` or commit a local `.env` file.
 The Gateway routes Central and Video API calls to their private Render
 host-port addresses (`CENTRAL_SERVICE_HOSTPORT` and `VIDEO_SERVICE_HOSTPORT`).
@@ -55,10 +56,12 @@ round trip through Render's public edge. The Video service also uses its private
 enforced at the Gateway; it removes the browser `Origin` header before
 forwarding API requests so downstream services do not reject origins already
 allowed by the Gateway.
+
 Video uploads use a separate 10-minute gateway response timeout
 (`GATEWAY_UPLOAD_RESPONSE_TIMEOUT_MS`); other API routes retain the shorter
 `GATEWAY_RESPONSE_TIMEOUT`. This accommodates large uploads without increasing
 the wait time for unrelated requests.
+
 New browser uploads use short-lived Video service authorization and upload
 directly to ImageKit, so video bytes do not pass through the API Gateway or
 depend on the Video container's ephemeral filesystem. Keep the ImageKit public
@@ -68,6 +71,7 @@ Unix timestamp in seconds. The authenticated account must permit the deployed
 frontend origin to upload. After this change is deployed, re-upload any video
 whose old local file was lost; its PostgreSQL row alone cannot restore the
 original media.
+
 The API Gateway exposes `GET /api/config`, which returns the public API base URL
 from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
 Render environment variable and the `VITE_API_CONFIG_URL` value in both Vercel
