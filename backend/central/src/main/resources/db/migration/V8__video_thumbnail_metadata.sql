@@ -1,3 +1,4 @@
+-- Add thumbnail processing metadata and transactional event delivery.
 ALTER TABLE public.videos
     ADD COLUMN IF NOT EXISTS thumbnail_source character varying(32),
     ADD COLUMN IF NOT EXISTS thumbnail_processing_status character varying(32) NOT NULL DEFAULT 'PENDING',
