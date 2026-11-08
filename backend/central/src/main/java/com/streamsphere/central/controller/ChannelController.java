@@ -12,6 +12,7 @@ import com.streamsphere.central.dto.request.CreateChannelRequestBody;
 import com.streamsphere.central.dto.request.VideoDetailsDTO;
 import com.streamsphere.central.service.ChannelService;
 import com.streamsphere.central.service.VideoService;
+import com.streamsphere.central.security.InternalServiceTokenValidator;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,9 @@ public class ChannelController {
 
     @Autowired
     VideoService videoService;
+
+    @Autowired
+    InternalServiceTokenValidator internalServiceTokenValidator;
 
     @PostMapping("/create")
     public void createChannel(@Valid @RequestBody CreateChannelRequestBody channelDetails){
@@ -54,7 +58,11 @@ public class ChannelController {
 
     @PostMapping("/{channelId}/video/upload")
     public void saveVideoDetails(@Valid @RequestBody VideoDetailsDTO videoDetailsDTO,
-                                 @PathVariable(name = "channelId") UUID channelId){
+                                 @PathVariable(name = "channelId") UUID channelId,
+                                 org.springframework.security.core.Authentication authentication,
+                                 @RequestHeader("X-Internal-Service-Token") String internalServiceToken) {
+        internalServiceTokenValidator.validate(internalServiceToken);
+        verifyChannelOwner(channelId, authentication);
         videoService.saveVideoDetails(channelId, videoDetailsDTO);
     }
 
@@ -74,15 +82,10 @@ public class ChannelController {
     public void replaceVideoMedia(@PathVariable UUID channelId,
                                   @PathVariable String videoId,
                                   @RequestBody VideoDetailsDTO payload,
-                                  org.springframework.security.core.Authentication authentication) {
-        Channel channel = channelService.getChannelById(channelId);
-        if (channel == null
-                || authentication == null
-                || channel.getUser() == null
-                || !authentication.getName().equalsIgnoreCase(channel.getUser().getEmail())) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "You are not allowed to replace media for this channel.");
-        }
+                                  org.springframework.security.core.Authentication authentication,
+                                  @RequestHeader("X-Internal-Service-Token") String internalServiceToken) {
+        internalServiceTokenValidator.validate(internalServiceToken);
+        verifyChannelOwner(channelId, authentication);
         String videoLink = payload.getVideoLink();
         if (videoLink == null || videoLink.isBlank()) {
             throw new IllegalArgumentException("Video URL is required.");
@@ -90,19 +93,40 @@ public class ChannelController {
         if (!"https".equalsIgnoreCase(java.net.URI.create(videoLink).getScheme())) {
             throw new IllegalArgumentException("Video URL must use HTTPS.");
         }
-        videoService.replaceVideoMedia(channelId, videoId, videoLink);
+        videoService.replaceVideoMedia(channelId, videoId, videoLink, payload.getThumbnailLink());
     }
 
     @PutMapping("/video/{videoId}/status")
     public void updateVideoStatus(@PathVariable(name = "videoId") String videoId,
-                                  @RequestParam(name = "status") String status) {
+                                  @RequestParam(name = "status") String status,
+                                  @RequestHeader("X-Internal-Service-Token") String internalServiceToken) {
+        internalServiceTokenValidator.validate(internalServiceToken);
         videoService.updateVideoStatus(videoId, status);
     }
 
     @PutMapping("/video/{videoId}/details")
     public void updateVideoDetails(@PathVariable(name = "videoId") String videoId,
-                                   @RequestBody VideoDetailsDTO videoDetailsDTO) {
+                                   @RequestBody VideoDetailsDTO videoDetailsDTO,
+                                   org.springframework.security.core.Authentication authentication,
+                                   @RequestHeader("X-Internal-Service-Token") String internalServiceToken) {
+        internalServiceTokenValidator.validate(internalServiceToken);
+        if (!videoService.videoBelongsToUser(videoId, authentication == null ? null : authentication.getName())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not allowed to update this video's metadata.");
+        }
         videoService.updateVideoDetails(videoId, videoDetailsDTO);
+    }
+
+    private void verifyChannelOwner(
+            UUID channelId, org.springframework.security.core.Authentication authentication) {
+        Channel channel = channelService.getChannelById(channelId);
+        if (channel == null
+                || authentication == null
+                || channel.getUser() == null
+                || !authentication.getName().equalsIgnoreCase(channel.getUser().getEmail())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not allowed to upload to this channel.");
+        }
     }
 
     @GetMapping("/popular")

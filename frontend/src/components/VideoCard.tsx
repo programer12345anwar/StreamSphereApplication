@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
 
 interface VideoCardModel {
   id: string;
@@ -10,6 +11,8 @@ interface VideoCardModel {
   thumbnailLink?: string;
   thumbnailUrl?: string;
   duration?: string;
+  durationSeconds?: number;
+  thumbnailProcessingStatus?: string;
   tags?: string[];
 }
 
@@ -18,6 +21,8 @@ interface VideoCardProps {
 }
 
 export function VideoCard({ video }: VideoCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const formatViews = (v?: number) => {
     if (!v) return "0 views";
     if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M views`;
@@ -26,28 +31,42 @@ export function VideoCard({ video }: VideoCardProps) {
   };
 
   const thumbnail = video.thumbnailLink || video.thumbnailUrl || "";
+  const thumbnailSource = !thumbnail || imageFailed ? "/thumbnail-placeholder.svg" : thumbnail;
+  const duration = video.duration || formatDuration(video.durationSeconds);
   const uploadedAt = video.uploadedAt ? new Date(video.uploadedAt).toLocaleDateString() : "Just now";
+
+  useEffect(() => {
+    setImageFailed(false);
+    setImageLoaded(false);
+  }, [thumbnail]);
 
   return (
     <Link to={`/watch/${video.id}`} className="group block">
       <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-        {thumbnail ? (
-          <img
-            src={thumbnail}
-            alt={video.title}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted">
-            <svg viewBox="0 0 24 24" className="h-12 w-12 fill-muted-foreground/30">
-              <path d="M10 8l6 4-6 4V8z" />
-            </svg>
-          </div>
-        )}
-        {video.duration && (
+        {!imageLoaded && <div className="absolute inset-0 animate-pulse bg-muted-foreground/10" aria-hidden="true" />}
+        <img
+          src={thumbnailSource}
+          alt={video.title ? `Thumbnail for ${video.title}` : "Video thumbnail"}
+          className={`h-full w-full object-cover transition-transform group-hover:scale-105 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => {
+            if (!imageFailed) {
+              setImageFailed(true);
+            } else {
+              setImageLoaded(true);
+            }
+          }}
+        />
+        {duration && (
           <span className="absolute bottom-1 right-1 rounded bg-background/90 px-1.5 py-0.5 text-xs font-medium text-foreground">
-            {video.duration}
+            {duration}
+          </span>
+        )}
+        {["PENDING", "PROCESSING"].includes(video.thumbnailProcessingStatus || "") && (
+          <span className="absolute left-2 top-2 rounded bg-background/90 px-2 py-1 text-[10px] font-medium text-foreground">
+            Generating thumbnail
           </span>
         )}
       </div>
@@ -78,4 +97,15 @@ export function VideoCard({ video }: VideoCardProps) {
       </div>
     </Link>
   );
+}
+
+function formatDuration(durationSeconds?: number) {
+  if (!Number.isFinite(durationSeconds) || !durationSeconds || durationSeconds < 0) return "";
+  const seconds = Math.floor(durationSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+    : `${minutes}:${String(remainder).padStart(2, "0")}`;
 }

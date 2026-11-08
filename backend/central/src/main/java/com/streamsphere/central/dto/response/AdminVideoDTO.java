@@ -12,5 +12,8 @@ public record AdminVideoDTO(
         int views,
         LocalDateTime uploadedAt,
         UUID channelId,
-        String channelName
+        String channelName,
+        String thumbnailSource,
+        String thumbnailProcessingStatus,
+        Integer durationSeconds
 ) {}

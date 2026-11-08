@@ -10,6 +10,22 @@ public interface ApiTemplate {
     public Object makePostCall(
             String apiUrl, String endPoint, Map<String, String> queryParams, Object requestBody, String authorization);
 
+    public Object makePostCall(
+            String apiUrl,
+            String endPoint,
+            Map<String, String> queryParams,
+            Object requestBody,
+            String authorization,
+            String internalServiceToken);
+
     public Object makePutCall(
             String apiUrl, String endPoint, Map<String, String> queryParams, Object requestBody, String authorization);
+
+    public Object makePutCall(
+            String apiUrl,
+            String endPoint,
+            Map<String, String> queryParams,
+            Object requestBody,
+            String authorization,
+            String internalServiceToken);
 }

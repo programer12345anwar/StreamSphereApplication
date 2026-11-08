@@ -101,7 +101,12 @@ public class AdminService {
                 v.getViews(),
                 v.getUploadDateTime(),
                 channel == null ? null : channel.getId(),
-                channel == null ? null : channel.getName()
+                channel == null ? null : channel.getName(),
+                v.getThumbnailSource() == null ? null : v.getThumbnailSource().name(),
+                v.getThumbnailProcessingStatus() == null
+                        ? null
+                        : v.getThumbnailProcessingStatus().name(),
+                v.getDurationSeconds()
         );
     }
 
@@ -132,4 +137,3 @@ public class AdminService {
         );
     }
 }
-

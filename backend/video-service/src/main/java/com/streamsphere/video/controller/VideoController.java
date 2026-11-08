@@ -65,6 +65,30 @@ public class VideoController {
         }
     }
 
+    @PostMapping("/upload/thumbnail/authorization")
+    public ResponseEntity<ImageKitUploadAuthorization> createThumbnailUploadAuthorization(
+            @RequestParam UUID channelId,
+            @RequestParam String videoId,
+            @RequestParam String fileName,
+            @RequestParam long fileSize,
+            @RequestParam(defaultValue = "false") boolean replacingExisting,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+        try {
+            return ResponseEntity.ok(uploadService.createThumbnailUploadAuthorization(
+                    channelId, videoId, fileName, fileSize, replacingExisting, authorization));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException e) {
+            log.error("ImageKit thumbnail storage is not configured", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        } catch (org.springframework.web.client.RestClientException e) {
+            log.error("Could not verify channel thumbnail permission", e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
+    }
+
     @PostMapping("/upload/complete")
     public ResponseEntity<VideoDetail> completeImageKitUpload(
             @jakarta.validation.Valid @RequestBody ImageKitUploadCompletionRequest request,
@@ -78,6 +102,9 @@ public class VideoController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException e) {
+            log.error("Thumbnail validation infrastructure is unavailable", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         } catch (io.imagekit.sdk.exceptions.ForbiddenException
                  | io.imagekit.sdk.exceptions.TooManyRequestsException
                  | io.imagekit.sdk.exceptions.InternalServerException

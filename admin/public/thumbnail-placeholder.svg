@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title">
+  <title id="title">StreamSphere video thumbnail</title>
+  <defs>
+    <linearGradient id="background" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#312e81"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#818cf8" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#background)"/>
+  <circle cx="640" cy="360" r="330" fill="url(#glow)"/>
+  <circle cx="640" cy="330" r="72" fill="#ffffff" fill-opacity=".12"/>
+  <path d="M620 291v78l64-39z" fill="#e0e7ff"/>
+  <text x="640" y="475" fill="#c7d2fe" font-family="Arial,sans-serif" font-size="32" font-weight="600" text-anchor="middle" letter-spacing="3">STREAMSPHERE</text>
+</svg>

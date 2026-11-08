@@ -21,6 +21,9 @@ public class ImageKitUploadCompletionRequest {
     @Size(max = 200)
     private String fileId;
 
+    @Size(max = 200)
+    private String thumbnailFileId;
+
     @NotBlank
     @Size(max = 200)
     private String name;

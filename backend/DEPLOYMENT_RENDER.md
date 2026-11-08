@@ -10,7 +10,9 @@ backend resources together as one Render Blueprint.
 2. Create a hosted RabbitMQ instance with a TLS connection, and have its host,
    port, username, and password ready. The Blueprint expects TLS by default.
 3. Have ImageKit API keys and SMTP credentials ready.
-4. Decide the exact public frontend and admin origins for the CORS prompts.
+4. Generate one strong random value for `CENTRAL_INTERNAL_SERVICE_TOKEN`;
+   enter that exact same value for both Central and Video.
+5. Decide the exact public frontend and admin origins for the CORS prompts.
 
 The Blueprint sets each Docker service's root directory to `backend`. Its
 Dockerfile paths are relative to that directory, and its Docker build context is
@@ -29,6 +31,9 @@ module POMs.
      `RABBITMQ_PASSWORD`, and the exact `RABBITMQ_VIRTUAL_HOST` for both
      Central and Notification.
    - `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, and `IMAGE_PRIVATE_KEY` for Video.
+   - The same `CENTRAL_INTERNAL_SERVICE_TOKEN` for Central and Video.
+   - RabbitMQ host, port, username, password, and virtual host for Central,
+     Video, and Notification.
    - `MAIL_USERNAME` and `MAIL_PASSWORD` for Notification. For Gmail, use the
      sender's full email address and a Google App Password (not the normal
      account password); ensure 2-Step Verification and App Passwords are enabled.
@@ -71,6 +76,14 @@ Unix timestamp in seconds. The authenticated account must permit the deployed
 frontend origin to upload. After this change is deployed, re-upload any video
 whose old local file was lost; its PostgreSQL row alone cannot restore the
 original media.
+
+Thumbnail processing uses RabbitMQ between Central and Video. Central stores a
+transactional outbox request, then Video uses FFmpeg/FFprobe to process the
+ImageKit video asynchronously and stores generated thumbnails in ImageKit.
+Custom JPEG, PNG, and WebP thumbnails are optional. The Video Docker image
+includes FFmpeg; monitor its CPU and temporary disk use and configure the
+`VIDEO_THUMBNAIL_*` limits to fit the service plan. Check thumbnail request and
+result dead-letter queues and service logs during rollout.
 
 The API Gateway exposes `GET /api/config`, which returns the public API base URL
 from `PUBLIC_API_BASE_URL`. If the Gateway's public URL changes, update that
@@ -129,6 +142,10 @@ then persists verified video metadata through
 - Use exact frontend/admin HTTPS origins in CORS settings.
 - Keep ImageKit, RabbitMQ, SMTP, and database credentials only in Render's
   Environment settings.
+- Set exactly the same private `CENTRAL_INTERNAL_SERVICE_TOKEN` on Central and
+  Video. Do not expose it in frontend configuration.
+- Verify the Video service has CPU/disk headroom for configured FFmpeg
+  processing limits, and monitor thumbnail event dead-letter queues.
 - Configure `MAIL_USERNAME` and `MAIL_PASSWORD` on the
   `streamsphere-notification` service. Check its logs for notification delivery
   errors and its `notification-queue.dlq` dead-letter queue after retries.

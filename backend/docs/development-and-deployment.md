@@ -11,8 +11,10 @@ For Render Blueprint steps and provider-specific operations, see
 - Docker Desktop / Docker Compose for local PostgreSQL and Redis.
 - PostgreSQL-compatible database.
 - RabbitMQ for notification publishing/consuming (a local broker or hosted
-  provider).
+  provider) and thumbnail-processing events.
 - ImageKit account/API keys for video uploads.
+- FFmpeg and FFprobe on the Video service runtime (the Video Docker image
+  installs both; local runs need them on `PATH` or configured paths).
 - SMTP credentials if testing outbound email.
 
 ## Local dependency services
@@ -109,9 +111,11 @@ also have module-level examples. Key settings include:
 | Schema lifecycle | `JPA_DDL_AUTO`, `FLYWAY_ENABLED`, `FLYWAY_BASELINE_ON_MIGRATE` |
 | JWT | `CENTRAL_SECRET_KEY` |
 | Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_TIMEOUT` |
-| RabbitMQ | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST`, `SPRING_RABBITMQ_SSL_ENABLED` |
+| RabbitMQ | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VIRTUAL_HOST`, `SPRING_RABBITMQ_SSL_ENABLED`; thumbnail topology is controlled by `VIDEO_THUMBNAIL_*` |
 | ImageKit | `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, `IMAGE_PRIVATE_KEY` |
 | Upload limit | `VIDEO_UPLOAD_MAX_BYTES` defaults to 100 MiB to match the current ImageKit account limit. Keep the frontend and ImageKit limits aligned if changing it. `MAX_UPLOAD_FILE_SIZE` and `MAX_UPLOAD_REQUEST_SIZE` apply only to legacy multipart server uploads. |
+| Thumbnail processing | `VIDEO_THUMBNAIL_MAX_BYTES`, min/max width/height, max pixels, download/process timeout, max attempts, `FFMPEG_PATH`, `FFPROBE_PATH` |
+| Internal service authentication | `CENTRAL_INTERNAL_SERVICE_TOKEN` must be the same strong secret in Central and Video; it protects Video-to-Central upload/update operations and is server-only |
 | Service addresses | `CENTRAL_API_URL`, `CENTRAL_SERVICE_URL`, `VIDEO_SERVICE_URL`, `NOTIFICATION_SERVICE_URL` |
 | Browser access | `CORS_ENABLED`, `CORS_ALLOWED_ORIGINS` |
 | Gateway runtime config | `PUBLIC_API_BASE_URL` |
@@ -163,8 +167,14 @@ deployed a revision.
 - `render.yaml` provisions the backend web services, PostgreSQL, and Redis.
   The current Blueprint deploys Gateway, Central, Video, and Notification.
 - Configure a hosted RabbitMQ broker and credentials; configure SMTP for email.
+- Configure RabbitMQ access for Central and Video using the matching
+  `VIDEO_THUMBNAIL_*` topology values. Set the same
+  `CENTRAL_INTERNAL_SERVICE_TOKEN` secret on Central and Video.
 - Set ImageKit URL endpoint and keys on the Video service. Allow the frontend
   origin in the ImageKit upload security settings.
+- The Video Docker image includes FFmpeg/FFprobe. Confirm the selected runtime
+  has enough CPU and temporary disk for the configured download and processing
+  limits; the temporary files are bounded and cleaned after each event.
 - Set exact frontend/admin origins in Gateway CORS configuration. Keep secrets
   in Render's environment/secret settings, not in Git.
 - Deploy the frontend and Admin separately (their READMEs describe Vercel

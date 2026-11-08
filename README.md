@@ -1,182 +1,207 @@
-StreamSphereApplication – Microservices Backend Architecture
+# StreamSphere
 
-📌 Overview
+StreamSphere is a video-sharing application with React web clients and a Java
+17 / Spring Boot microservices backend. This repository contains the public
+frontend, an admin console, backend services, and deployment configuration.
 
-This project is a YouTube-like backend system built using modern Microservices Architecture with Spring Boot.
+## Architecture
 
-It simulates real-world video platform features such as:
-
-User & Channel Management ||
-Secure Authentication || 
-Video Upload Management ||
-Asynchronous Notifications ||
-High Scalability & Decoupled Services
-
-Screenshots:
-<img width="1920" height="1538" alt="screencapture-localhost-8080-swagger-ui-index-html-2025-12-08-01_23_23" src="https://github.com/user-attachments/assets/fafe53b5-6d75-4baa-8c80-399239272273" />
-
-<img width="1920" height="1028" alt="screencapture-localhost-8080-swagger-ui-index-html-2025-12-08-01_22_41" src="https://github.com/user-attachments/assets/b2ef0c48-61fd-4b49-8b7c-28548851685b" />
-
-<img width="1920" height="970" alt="screencapture-localhost-8080-swagger-ui-index-html-2025-12-08-01_22_22" src="https://github.com/user-attachments/assets/0be38dd8-1de3-4244-8f1b-ac34a02ed137" />
-
-
-🏗️ Microservices Architecture
-
-The backend is divided into three independent microservices:
-
-🔐 Central API Service
-
-Handles:
-
-User Authentication & Authorization
-
-Channel creation & management
-
-JWT Token validation
-
-Secure Service-to-Service communication
-
-🎥 Video API Service
-
-Handles:
-
-Video uploads
-
-Integration with ImageKit.io
-
-Video metadata management
-
-Storage abstractions
-
-🔔 Notification API Service
-
-Handles:
-
-Subscriptions
-
-Channel activity notifications
-
-Async message processing via RabbitMQ
-
-Event-driven architecture
-
-🧩 Tech Stack
-Category	Technology
-Language	Java 21
-Framework	Spring Boot
-Architecture	Microservices
-Authentication	Spring Security + JWT
-Databases	PostgreSQL + MongoDB
-Messaging Queue	RabbitMQ
-File Storage	ImageKit.io
-Build Tool	Maven
-API Docs	Swagger (OpenAPI)
-Deployment	Docker for containerization of RabbitMQ
-
-🔄 Architecture Diagram (Logical View)
-
-<img width="401" height="277" alt="image" src="https://github.com/user-attachments/assets/dc7dfb94-095b-4ca0-a2c7-4fdd36c471f8" />
-
-🚀 Features
-
-JWT based Authentication
-Centralized User Management
-Decoupled Upload Processing
-Event-Driven Notifications
-Secure Microservice communication
-Horizontal scalability
-Cloud video storage
-Stateless backend design
-Clean layered architecture
-
-⚙️ How to Run
-1️⃣ Clone Repository
-git clone https://github.com/programer12345anwar/YouTube-Clone.git
-cd YouTube-Clone
-
-2️⃣ Start Dependencies
-
-Make sure these are running:
-
-PostgreSQL
-
-MongoDB
-
-RabbitMQ
-
-ImageKit credentials configured
-
-### 🔧 Environment Variables
-
-Create a `.env` file and add:
-
-```env
-DB_URL=
-DB_USERNAME=
-DB_PASSWORD=
-JWT_SECRET=
-IMAGEKIT_PUBLIC_KEY=
-IMAGEKIT_PRIVATE_KEY=
-RABBITMQ_HOST=
+```mermaid
+flowchart LR
+    Browser --> Frontend[React frontend]
+    Browser --> Admin[React admin console]
+    Frontend --> Gateway[API Gateway]
+    Admin --> Gateway
+    Gateway --> Central[Central service]
+    Gateway --> Video[Video service]
+    Gateway --> Notifications[Notification service]
+    Central --> PostgreSQL[(PostgreSQL)]
+    Central --> Redis[(Redis cache)]
+    Central --> RabbitMQ[(RabbitMQ)]
+    RabbitMQ --> Notifications
+    RabbitMQ --> Video
+    Video --> RabbitMQ
+    Notifications --> SMTP[SMTP provider]
+    Video --> Central
+    Browser -->|Direct video upload and playback| ImageKit[ImageKit]
+    Video --> ImageKit
 ```
 
+### Backend services
 
-4️⃣ Start Services (in order)
-cd central-api && mvn spring-boot:run
-cd video-api && mvn spring-boot:run
-cd notification-api && mvn spring-boot:run
+| Module | Responsibility | Default local port |
+| --- | --- | ---: |
+| `api-gateway` | Public API entry point, routing, browser CORS, and runtime API configuration | 8080 |
+| `central` | Users, authentication/JWT, channels, video metadata, feeds, admin APIs, and in-app notifications | 8084 |
+| `video-service` | ImageKit upload authorization and verification, then metadata persistence through Central | 8083 |
+| `notification-api` | RabbitMQ notification consumer and SMTP email delivery | 8082 |
+| `service-registry` | Eureka service-registry module | — |
 
-📖 API Documentation
+Central uses PostgreSQL as its source of truth and Redis for selected cache
+reads. RabbitMQ carries notification messages and asynchronous thumbnail
+processing events. New browser video uploads go directly to ImageKit using
+short-lived server-issued authorization. Video metadata is initially marked
+processing; the Video service generates a thumbnail with FFmpeg (or preserves
+an optional creator-uploaded thumbnail) and reports the result to Central.
 
-Swagger UI (Running locally):
+The Service Registry is present in the Maven project, but the current local
+manual startup and Render Blueprint use explicit service URLs; Render does not
+deploy the registry module.
 
-Service	URL
-Central API	http://localhost:9000/swagger-ui.html
-Video API	http://localhost:9001/swagger-ui.html
-Notify API	http://localhost:9002/swagger-ui.html
-🧪 Sample APIs
-Feature	Endpoint
-Create Channel	POST /channel/create
-Upload Video	POST /video/upload
-Subscribe	POST /subscribe/{channelId}
-Notify	Internal Message Queue
-🛡️ Security
+### Technology
 
-JWT Authentication
+- **Backend:** Java 17, Spring Boot 3.4.4, Spring Cloud, Maven
+- **Web clients:** React 18, Vite, Tailwind CSS, shadcn/ui
+- **Data and messaging:** PostgreSQL, Redis, RabbitMQ
+- **Media:** ImageKit, FFmpeg/FFprobe for asynchronous thumbnail generation
+- **API documentation and health:** OpenAPI/Swagger UI and Spring Actuator
 
-API Gateway Pattern
+MongoDB and Kafka are not part of the current application configuration.
 
-Stateless Sessions
+## Repository layout
 
-Role-based access
+```text
+admin/                 React admin console
+backend/
+  api-gateway/         Public API gateway
+  central/             Identity, catalog, and metadata service
+  notification-api/    Notification consumer and email service
+  service-registry/    Eureka registry module
+  video-service/       Video upload and media integration
+  docs/                Architecture, API, events, and development guides
+  docker-compose.yml   Local PostgreSQL, pgAdmin, and Redis
+frontend/              React user-facing application
+render.yaml            Render backend Blueprint
+```
 
-Inter-service authorization
+## Run locally
 
-👨‍💻 Author
+### Prerequisites
 
-Md Anwar Alam
-📧 Email: mdanwar40212@gmail.com
+- Java 17
+- Node.js 20 or a compatible current Node release
+- Docker Desktop with Docker Compose
+- RabbitMQ for end-to-end notification delivery
+- ImageKit credentials for video uploads; SMTP credentials for email delivery
+- FFmpeg and FFprobe available on the Video service runtime (included in its
+  Docker image)
 
-🔗 GitHub: https://github.com/programer12345anwar
+### 1. Start local dependencies
 
-📢 Future Enhancements
+From PowerShell at the repository root:
 
-✅ API Gateway
+```powershell
+Set-Location .\backend
+Copy-Item .env.example .env
+docker compose up -d db redis pgadmin
+```
 
-✅ Redis Caching
+The Compose file starts PostgreSQL, pgAdmin, and Redis, not the Spring Boot
+services or RabbitMQ. Review `backend\.env` and configure any required local
+values. The example contains development defaults only; do not use them in
+production or commit secrets.
 
-✅ Service Discovery (Eureka)
+### 2. Start the backend
 
-✅ Kubernetes Deployment
+Run each service in a separate terminal. From the repository root:
 
-✅ CI/CD Integration
+```powershell
+Set-Location .\backend\api-gateway
+.\mvnw.cmd spring-boot:run
+```
 
-✅ Load Balancing
+```powershell
+Set-Location .\backend\central
+.\mvnw.cmd spring-boot:run
+```
 
-⭐ Support
+```powershell
+Set-Location .\backend\video-service
+.\mvnw.cmd spring-boot:run
+```
 
-If you found this project useful:
+```powershell
+Set-Location .\backend\notification-api
+.\mvnw.cmd spring-boot:run
+```
 
-✅ Give it a ⭐ on GitHub
-✅ Fork & contribute
-✅ Use in portfolio
+The manual local setup does not require the Service Registry. The Gateway,
+Central, Video, and Notification services expose Actuator health endpoints at
+`/actuator/health`. Swagger UI is available at `/swagger-ui.html` on the
+Gateway and backend services.
+
+### 3. Start the web clients
+
+In separate terminals:
+
+```powershell
+Set-Location .\frontend
+npm ci
+$env:VITE_API_CONFIG_URL = "http://localhost:8080"
+npm run dev
+```
+
+```powershell
+Set-Location .\admin
+npm ci
+$env:VITE_API_CONFIG_URL = "http://localhost:8080"
+npm run dev
+```
+
+Both clients load the API base URL from the Gateway's `/api/config` endpoint.
+Set `VITE_API_CONFIG_URL` to your Gateway URL when using a non-default
+environment. Vite uses port 5173 by default and selects another free port if
+needed.
+
+### Configuration
+
+`backend\.env.example` lists the local configuration variables, including
+PostgreSQL, Redis, RabbitMQ, ImageKit, FFmpeg, thumbnail limits, the shared
+Central/Video internal-service token, JWT, SMTP, CORS, and service URLs. Set
+the same strong `CENTRAL_INTERNAL_SERVICE_TOKEN` for Central and Video; do not
+expose it to either browser app.
+Module-level `application.properties` files and the deployment configuration
+are the source of truth for defaults and service-specific aliases. Keep
+credentials server-side and out of version control.
+
+## Tests and builds
+
+Backend tests can be run per service from each module directory:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Frontend and Admin both provide these npm scripts:
+
+```powershell
+npm run lint
+npm run test
+npm run build
+```
+
+Run npm commands from the corresponding `frontend` or `admin` directory.
+
+## Deployment
+
+The root `render.yaml` Blueprint provisions the Gateway, Central, Video, and
+Notification backend services, plus PostgreSQL and Redis. RabbitMQ, ImageKit,
+and SMTP credentials must be configured separately. Set
+`CENTRAL_INTERNAL_SERVICE_TOKEN` to the same secret on Central and Video. The
+Video Docker image includes FFmpeg/FFprobe; ensure the deployment plan has
+sufficient CPU and temporary disk for bounded video downloads and processing.
+The frontend and Admin apps are deployed separately; their project roots are
+`frontend` and `admin`.
+
+See [Render deployment instructions](backend/DEPLOYMENT_RENDER.md) before
+creating the Blueprint. Free-tier resources can sleep or have limited
+retention/storage and are not a production-ready configuration by themselves.
+
+## Documentation
+
+- [Backend documentation index](backend/docs/README.md)
+- [System architecture](backend/docs/architecture/system-architecture.md)
+- [API reference](backend/docs/api/api-reference.md)
+- [Development and deployment guide](backend/docs/development-and-deployment.md)
+- [Frontend instructions](frontend/README.md)
+- [Admin instructions](admin/README.md)

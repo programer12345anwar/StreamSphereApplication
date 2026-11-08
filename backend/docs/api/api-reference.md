@@ -103,10 +103,19 @@ Base path: `/api/v1/video`
 2. Browser posts the bytes directly to
    `https://upload.imagekit.io/api/v1/files/upload` with the authorization
    fields and ImageKit multipart fields.
-3. `POST /upload/complete`
+3. Optionally, the channel owner calls
+   `POST /upload/thumbnail/authorization?channelId={uuid}&videoId={id}&fileName={name}&fileSize={bytes}[&replacingExisting=true]`
+   to receive separate scoped ImageKit authorization for a custom JPEG, PNG,
+   or WebP thumbnail. Defaults are 5 MiB, 160x90 minimum, 4096x4096 maximum,
+   and 16,777,216 maximum pixels. The server verifies actual image contents
+   and dimensions during completion rather than trusting browser MIME data.
+4. `POST /upload/complete`
    - Requires a valid JWT and the JSON body below.
-   - Video verifies the returned ImageKit file ID via ImageKit's API and asks
-     Central to persist the verified metadata.
+   - Include `thumbnailFileId` if a custom thumbnail was uploaded.
+   - Video verifies the returned ImageKit file IDs via ImageKit's API and asks
+     Central to persist verified metadata. New videos are initially
+     `PROCESSING`; Central publishes a transactional outbox event for
+     asynchronous thumbnail processing.
    - Returns `201 Created` for a new video and `200 OK` when replacing media
      on an existing video.
 
@@ -117,6 +126,7 @@ Example completion request:
   "channelId": "00000000-0000-0000-0000-000000000000",
   "videoId": "generated-uuid",
   "fileId": "imagekit-file-id",
+  "thumbnailFileId": "optional-imagekit-thumbnail-file-id",
   "replaceExisting": false,
   "name": "Video title",
   "description": "Optional description",
@@ -124,6 +134,16 @@ Example completion request:
   "isShort": false
 }
 ```
+
+The Video service's upload completion response returns `videoId` and
+`videoUrl`. Central's video feed/detail records include `thumbnailLink` and its
+`thumbnailUrl` compatibility alias,
+`thumbnailSource` (`CUSTOM`, `GENERATED`, or `DEFAULT`),
+`thumbnailProcessingStatus` (`PENDING`, `PROCESSING`, `READY`, or `FALLBACK`),
+and `durationSeconds`. Central publishes a new video after processing
+completes. Automatic extraction failures are recorded explicitly as
+`FALLBACK`/`DEFAULT`; clients should render a branded fallback when the
+thumbnail URL is absent or broken.
 
 The authenticated user must own `channelId`. Accepted video size defaults to
 100 MiB (104,857,600 bytes), matching the current ImageKit account limit. The
@@ -138,7 +158,8 @@ must still have the original source file. Start from the watch page's
 preserves title, description, tags, visibility, status, and view count while
 updating only the verified media URL. The server verifies ownership both
 before upload and at completion; it rejects replacement attempts for videos
-from another channel.
+from another channel. A replacement queues a new thumbnail-processing event
+and uses an event ID to prevent stale results from replacing newer metadata.
 
 ### Legacy paths
 

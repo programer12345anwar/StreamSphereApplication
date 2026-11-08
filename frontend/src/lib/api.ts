@@ -1,6 +1,8 @@
 import axios from "axios";
 
 const MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024;
+const MAX_THUMBNAIL_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_THUMBNAIL_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const API_CONFIG_URL =
   import.meta.env.VITE_API_CONFIG_URL || "https://streamsphere-api-gateway.onrender.com";
@@ -174,12 +176,19 @@ export async function uploadVideo(
   videoDetails,
   onUploadProgress,
   replaceVideoId,
+  thumbnailFile,
 ) {
   if (!videoFile || typeof videoFile.type !== "string" || !videoFile.type.startsWith("video/")) {
     throw new Error("Choose a valid video file.");
   }
   if (videoFile.size <= 0 || videoFile.size > MAX_VIDEO_UPLOAD_BYTES) {
     throw new Error("Video files must be between 1 byte and 100 MiB (104,857,600 bytes).");
+  }
+  if (thumbnailFile && !ALLOWED_THUMBNAIL_TYPES.has(thumbnailFile.type)) {
+    throw new Error("Choose a JPEG, PNG, or WebP thumbnail image.");
+  }
+  if (thumbnailFile && (thumbnailFile.size <= 0 || thumbnailFile.size > MAX_THUMBNAIL_UPLOAD_BYTES)) {
+    throw new Error("Thumbnail files must be no larger than 5 MiB.");
   }
 
   const authorization = await apiRequest(
@@ -189,34 +198,24 @@ export async function uploadVideo(
       headers: authHeaders(),
     },
   );
-  const formData = new FormData();
-  formData.append("file", videoFile);
-  formData.append("fileName", authorization.fileName);
-  formData.append("folder", authorization.folder);
-  formData.append("publicKey", authorization.publicKey);
-  formData.append("useUniqueFileName", "false");
-  Object.entries(authorization.authentication || {}).forEach(([key, value]) => {
-    formData.append(key, value);
-  });
-
-  let uploadedAsset;
-  try {
-    const response = await axios.post(
-      "https://upload.imagekit.io/api/v1/files/upload",
-      formData,
-      { onUploadProgress },
-    );
-    uploadedAsset = response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const message = error.response?.data?.message || error.message;
-      throw new Error(`ImageKit upload failed: ${message}`);
-    }
-    throw error;
+  const uploadedAsset = await uploadToImageKit(videoFile, authorization, onUploadProgress);
+  if (!uploadedAsset?.fileId) {
+    throw new Error("ImageKit did not return an uploaded video file ID.");
   }
 
-  if (!uploadedAsset?.fileId) {
-    throw new Error("ImageKit did not return an uploaded file ID.");
+  let uploadedThumbnail;
+  if (thumbnailFile) {
+    const thumbnailAuthorization = await apiRequest(
+      `/api/v1/video/upload/thumbnail/authorization?channelId=${encodeURIComponent(channelId)}&videoId=${encodeURIComponent(authorization.videoId)}&fileName=${encodeURIComponent(thumbnailFile.name)}&fileSize=${thumbnailFile.size}&replacingExisting=${Boolean(replaceVideoId)}`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+      },
+    );
+    uploadedThumbnail = await uploadToImageKit(thumbnailFile, thumbnailAuthorization);
+    if (!uploadedThumbnail?.fileId) {
+      throw new Error("ImageKit did not return an uploaded thumbnail file ID.");
+    }
   }
 
   return apiRequest("/api/v1/video/upload/complete", {
@@ -227,9 +226,37 @@ export async function uploadVideo(
       channelId,
       videoId: authorization.videoId,
       fileId: uploadedAsset.fileId,
+      thumbnailFileId: uploadedThumbnail?.fileId,
       replaceExisting: Boolean(authorization.replacement),
     }),
   });
+}
+
+async function uploadToImageKit(file, authorization, onUploadProgress) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("fileName", authorization.fileName);
+  formData.append("folder", authorization.folder);
+  formData.append("publicKey", authorization.publicKey);
+  formData.append("useUniqueFileName", "false");
+  Object.entries(authorization.authentication || {}).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  try {
+    const response = await axios.post(
+      "https://upload.imagekit.io/api/v1/files/upload",
+      formData,
+      { onUploadProgress },
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message || error.message;
+      throw new Error(`ImageKit upload failed: ${message}`);
+    }
+    throw error;
+  }
 }
 
 export function isLegacyLocalMediaUrl(mediaUrl) {

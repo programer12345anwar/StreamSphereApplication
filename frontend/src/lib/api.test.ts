@@ -142,4 +142,70 @@ describe("video media URLs", () => {
     expect(vi.mocked(axios.request).mock.calls[1][0].data)
       .toContain('"replaceExisting":true');
   });
+
+  it("uploads an optional thumbnail through a separate signed ImageKit upload", async () => {
+    vi.mocked(axios.get).mockResolvedValue({
+      data: { apiBaseUrl: "https://api.example.com" },
+    });
+    vi.mocked(axios.request)
+      .mockResolvedValueOnce({
+        status: 200,
+        data: {
+          publicKey: "public-key",
+          videoId: "video-with-thumb",
+          fileName: "video-with-thumb.mp4",
+          folder: "/streamsphere/videos/channel-1",
+          authentication: { token: "video-token", expire: "123", signature: "video-signed" },
+        },
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        data: {
+          publicKey: "public-key",
+          videoId: "video-with-thumb",
+          fileName: "video-with-thumb_custom.png",
+          folder: "/streamsphere/thumbnails/channel-1",
+          authentication: { token: "thumb-token", expire: "123", signature: "thumb-signed" },
+        },
+      })
+      .mockResolvedValueOnce({
+        status: 201,
+        data: { videoId: "video-with-thumb", videoUrl: "https://ik.example/video.mp4" },
+      });
+    vi.mocked(axios.post)
+      .mockResolvedValueOnce({ data: { fileId: "video-file-id" } })
+      .mockResolvedValueOnce({ data: { fileId: "thumbnail-file-id" } });
+
+    await uploadVideo(
+      "channel-1",
+      new File(["video"], "clip.mp4", { type: "video/mp4" }),
+      { name: "A clip", description: "", tags: [], isShort: false },
+      undefined,
+      undefined,
+      new File(["image"], "cover.png", { type: "image/png" }),
+    );
+
+    expect(vi.mocked(axios.request).mock.calls[1][0].url)
+      .toContain("/api/v1/video/upload/thumbnail/authorization?");
+    expect(vi.mocked(axios.post)).toHaveBeenCalledTimes(2);
+    const completionRequest = vi.mocked(axios.request).mock.calls[2][0];
+    expect(completionRequest.url).toBe("/api/v1/video/upload/complete");
+    expect(completionRequest.data).toContain('"thumbnailFileId":"thumbnail-file-id"');
+  });
+
+  it("rejects unsupported custom thumbnail MIME types before uploading the video", async () => {
+    await expect(
+      uploadVideo(
+        "channel-1",
+        new File(["video"], "clip.mp4", { type: "video/mp4" }),
+        { name: "A clip", description: "", tags: [], isShort: false },
+        undefined,
+        undefined,
+        new File(["script"], "cover.svg", { type: "image/svg+xml" }),
+      ),
+    ).rejects.toThrow("JPEG, PNG, or WebP");
+
+    expect(axios.request).not.toHaveBeenCalled();
+    expect(axios.post).not.toHaveBeenCalled();
+  });
 });

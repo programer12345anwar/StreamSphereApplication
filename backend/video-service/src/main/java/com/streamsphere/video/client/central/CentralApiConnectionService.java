@@ -37,6 +37,9 @@ public class CentralApiConnectionService {
     @Value("${central.api.url}")
     String centralApiUrl;
 
+    @Value("${central.internal-service-token:}")
+    String internalServiceToken;
+
     // Save video details method is going to call save video details endpoint present in central
     public void saveVideoDetails( UUID channelId,
     VideoDetailsDTO videoDetailsDTO,
@@ -47,7 +50,12 @@ public class CentralApiConnectionService {
          log.info("this is endpoint: "+endPoint);
          // apiurl, endpoint, queryparams, requestbody
          Object resp = apiTemplate.makePostCall(
-                 centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO, authorization);
+                 centralApiUrl,
+                 endPoint,
+                 new HashMap<>(),
+                 videoDetailsDTO,
+                 authorization,
+                 requireInternalServiceToken());
         if (resp == null) {
             log.warn("Central API returned null response for uploading video");
         } else {
@@ -74,13 +82,28 @@ public class CentralApiConnectionService {
 
     public void replaceVideoMedia(
             UUID channelId, String videoId, String videoLink, String authorization) {
+        replaceVideoMedia(channelId, videoId, videoLink, null, authorization);
+    }
+
+    public void replaceVideoMedia(
+            UUID channelId,
+            String videoId,
+            String videoLink,
+            String thumbnailLink,
+            String authorization) {
         String endpoint = "/channel/" + channelId + "/video/" + videoId + "/media";
+        Map<String, String> payload = new HashMap<>();
+        payload.put("videoLink", videoLink);
+        if (thumbnailLink != null) {
+            payload.put("thumbnailLink", thumbnailLink);
+        }
         apiTemplate.makePutCall(
                 centralApiUrl,
                 endpoint,
                 new HashMap<>(),
-                Map.of("videoLink", videoLink),
-                authorization);
+                payload,
+                authorization,
+                requireInternalServiceToken());
     }
 
     public void updateVideoStatus(String videoId, String status, String authorization) {
@@ -88,13 +111,20 @@ public class CentralApiConnectionService {
         String endPoint = "/channel/video/" + videoId + "/status";
         Map<String, String> params = new HashMap<>();
         params.put("status", status);
-        apiTemplate.makePutCall(centralApiUrl, endPoint, params, null, authorization);
+        apiTemplate.makePutCall(
+                centralApiUrl, endPoint, params, null, authorization, requireInternalServiceToken());
     }
 
     public void updateVideoDetails(String videoId, VideoDetailsDTO videoDetailsDTO, String authorization) {
         log.info("Updating video details for {}", videoId);
         String endPoint = "/channel/video/" + videoId + "/details";
-        apiTemplate.makePutCall(centralApiUrl, endPoint, new HashMap<>(), videoDetailsDTO, authorization);
+        apiTemplate.makePutCall(
+                centralApiUrl,
+                endPoint,
+                new HashMap<>(),
+                videoDetailsDTO,
+                authorization,
+                requireInternalServiceToken());
     }
     public boolean isValidToken(String token){
         String endPoint = "/security/validate-token/" + token;
@@ -107,6 +137,13 @@ public class CentralApiConnectionService {
         Object object = apiTemplate.makeGetCall(centralApiUrl, endPoint, new HashMap<>());
         SecurityCredential securityCredential = mapper.map(object, SecurityCredential.class);
         return securityCredential.getCredential();
+    }
+
+    private String requireInternalServiceToken() {
+        if (internalServiceToken == null || internalServiceToken.isBlank()) {
+            throw new IllegalStateException("Central internal service authentication is not configured.");
+        }
+        return internalServiceToken;
     }
 
 }

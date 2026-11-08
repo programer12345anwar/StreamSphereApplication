@@ -6,6 +6,8 @@ import lombok.*;
 import java.util.List;
 import java.time.LocalDateTime;
 import com.streamsphere.central.enums.VideoStatus;
+import com.streamsphere.central.enums.ThumbnailProcessingStatus;
+import com.streamsphere.central.enums.ThumbnailSource;
 import com.streamsphere.central.enums.VideoVisibility;
 
 @Getter
@@ -24,6 +26,12 @@ public class Video {
     private LocalDateTime updatedAt;
     private String videoLink;
     private String thumbnailLink;
+    @Enumerated(EnumType.STRING)
+    private ThumbnailSource thumbnailSource;
+    @Enumerated(EnumType.STRING)
+    private ThumbnailProcessingStatus thumbnailProcessingStatus = ThumbnailProcessingStatus.PENDING;
+    private Integer durationSeconds;
+    private java.util.UUID thumbnailProcessingEventId;
     private int views;
     private boolean isShort;
 

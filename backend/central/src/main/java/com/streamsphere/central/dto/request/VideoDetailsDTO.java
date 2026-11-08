@@ -17,10 +17,11 @@ public class VideoDetailsDTO {
     @jakarta.validation.constraints.NotBlank
     private String videoLink;
     private String thumbnailLink;
+    private String thumbnailSource;
+    private Integer durationSeconds;
     private List<String> tags;
     private String status;
     private String visibility;
     @com.fasterxml.jackson.annotation.JsonProperty("isShort")
     private boolean isShort;
 }
-

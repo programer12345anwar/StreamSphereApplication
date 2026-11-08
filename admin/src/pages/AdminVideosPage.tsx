@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { request } from "@/lib/adminApi";
-import { Clapperboard, Trash2, Video, User } from "lucide-react";
+import { Clapperboard, Trash2, User } from "lucide-react";
 
 export default function AdminVideosPage() {
   const [page, setPage] = useState(0);
@@ -46,16 +46,25 @@ export default function AdminVideosPage() {
                 <tr key={v.id} className="hover:bg-slate-800/30 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {v.thumbnailLink ? (
-                        <img src={v.thumbnailLink} alt="thumb" className="w-16 h-10 object-cover rounded shadow-md" />
-                      ) : (
-                        <div className="w-16 h-10 bg-slate-800 rounded flex items-center justify-center">
-                          <Video className="w-4 h-4 text-slate-500" />
-                        </div>
-                      )}
+                      <img
+                        src={v.thumbnailLink || "/thumbnail-placeholder.svg"}
+                        alt={`Thumbnail for ${v.title || "video"}`}
+                        loading="lazy"
+                        className="aspect-video w-20 rounded object-cover shadow-md"
+                        onError={(event) => {
+                          if (!event.currentTarget.src.endsWith("/thumbnail-placeholder.svg")) {
+                            event.currentTarget.src = "/thumbnail-placeholder.svg";
+                          }
+                        }}
+                      />
                       <div>
                         <div className="font-medium text-slate-200 line-clamp-1">{v.title}</div>
                         <div className="text-xs text-slate-500 mt-0.5">{new Date(v.uploadedAt).toLocaleDateString()}</div>
+                        {v.thumbnailProcessingStatus && (
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            Thumbnail: {v.thumbnailProcessingStatus.toLowerCase()}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

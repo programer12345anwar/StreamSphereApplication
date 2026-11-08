@@ -11,8 +11,8 @@ The current repository contains a Gateway, Central service, Video service,
 Notification service, and a Service Registry module. The Render Blueprint
 deploys the first four; it does not currently provision the Service Registry.
 PostgreSQL stores application records, Redis is used for Central's cache,
-RabbitMQ carries asynchronous notification messages, and ImageKit stores new
-video media and serves it from a CDN.
+RabbitMQ carries asynchronous notification and thumbnail-processing messages,
+and ImageKit stores new video media and serves it from a CDN.
 
 ## Logical topology
 
@@ -42,6 +42,10 @@ flowchart LR
     Central --> Redis
     Central -->|notification messages| Rabbit
     Rabbit --> Notify
+    Central -->|thumbnail outbox request| Rabbit
+    Rabbit -->|thumbnail request| Video
+    Video -->|thumbnail result| Rabbit
+    Rabbit -->|processing result| Central
     Notify --> SMTP
     Video -->|authorization, ownership check, metadata save| Central
     Browser -->|video bytes, signed upload| ImageKit
@@ -74,7 +78,9 @@ flowchart LR
   APIs.
 - Uses Redis for selected cache-aside reads, with PostgreSQL remaining the
   source of truth. Cache entries are evicted on relevant video writes.
-- Publishes asynchronous email notification messages to RabbitMQ.
+- Publishes asynchronous email notifications and durable thumbnail requests
+  through RabbitMQ. Thumbnail requests originate from a PostgreSQL outbox;
+  Central applies completion results idempotently and ignores stale event IDs.
 - Pushes in-app notifications to WebSocket topics.
 
 ### Video service
@@ -85,6 +91,12 @@ flowchart LR
   enforces a configurable 100 MiB default upload limit.
 - Verifies ImageKit's file ID, expected folder/name, media type, size, and CDN
   host before asking Central to store the metadata.
+- Optionally authorizes and verifies a custom JPEG, PNG, or WebP thumbnail,
+  including actual decoded image format and configured dimensions/size.
+- Consumes thumbnail work asynchronously, downloads video assets to bounded
+  temporary files, and uses FFmpeg/FFprobe to determine duration and extract a
+  suitable 1280x720 thumbnail. It preserves custom images, retries processing,
+  and reports an explicit fallback result on exhausted failures.
 - Does not proxy current browser-uploaded file bytes through the Video service
   or its container filesystem.
 - Keeps a legacy local storage implementation for historical stream records.
@@ -145,14 +157,26 @@ prove that the referenced file still exists.
    parameters.
 5. Browser sends the returned ImageKit file ID and video metadata to
    `POST /api/v1/video/upload/complete`.
-6. Video checks channel ownership again, retrieves the asset details from
-   ImageKit, and verifies the expected channel folder, generated name, file
-   size, video MIME type, HTTPS URL, and configured ImageKit host.
-7. Video asks Central to create the PostgreSQL video row using the verified
-   ImageKit URL. Current completion marks this direct-upload video
-   `PUBLISHED` and `PUBLIC`.
-8. Home/feed can return the video because the feed query selects only
-   `PUBLISHED` + `PUBLIC` records.
+6. If a custom thumbnail is selected, the browser separately obtains signed
+   authorization from `POST /api/v1/video/upload/thumbnail/authorization`,
+   uploads the image to ImageKit, and includes its file ID in completion.
+7. Video checks channel ownership again, retrieves asset details, and verifies
+   the expected folder/name, file size, reported MIME type, HTTPS URL, and
+   configured ImageKit host. For a custom thumbnail it additionally downloads
+   the image within configured bounds and validates its actual format and
+   dimensions.
+8. Video asks Central to create the row as `PROCESSING` and insert a
+   transactional outbox event. Central publishes the event to RabbitMQ only
+   after the database transaction commits.
+9. Video consumes the event, probes duration and generates/optimizes a
+   1280x720 JPEG when no custom image exists, then stores it in ImageKit.
+   Custom images are preserved. Video publishes a result for Central to apply.
+10. Central ignores duplicate or stale event results, stores thumbnail source,
+    URL, status, and duration, and marks the video `PUBLISHED`. Exhausted
+    processing failures are recorded as `FALLBACK`/`DEFAULT`; the clients use
+    a branded local image if no working thumbnail URL is available.
+11. Home/feed can return the video after publication because the feed query
+    selects only `PUBLISHED` + `PUBLIC` records.
 
 For a legacy record whose local media file was lost, the channel owner can
 start a replacement upload from its Watch page. Video authorizes replacement
@@ -213,7 +237,7 @@ Central's PostgreSQL schema includes these principal entities:
 | --- | --- |
 | `AppUser` | Account, unique email, encoded password, role, profile fields |
 | `Channel` | Creator-owned channel, subscriber relationship, counters, videos and playlists |
-| `Video` | Metadata, ImageKit URL, status/visibility, view count, channel, tags, short-form flag |
+| `Video` | Metadata, ImageKit URLs, thumbnail source/status, duration, processing event ID, status/visibility, view count, channel, tags, short-form flag |
 | `Tag` | Reusable video tags |
 | `VideoLike` / `Comment` | Video engagement and threaded comments |
 | `UserWatchHistory` | Per-user watched-video and resume data |
@@ -246,6 +270,10 @@ Redis the source of truth or prevent PostgreSQL-backed requests from working.
   dependency for browser API traffic.
 - **RabbitMQ for email work:** request-handling services need not perform SMTP
   delivery synchronously; delivery is asynchronous and can be retried.
+- **Thumbnail outbox and worker:** Central's transactional outbox avoids
+  committing a video row without recording its processing request. RabbitMQ
+  publisher confirms, bounded processing attempts, result event IDs, and
+  dead-letter queues address delivery and duplicate/stale processing cases.
 - **Redis as an optional cache:** reduces repeated read load, but cache
   correctness depends on eviction/expiry and the database remains authoritative.
 - **Flyway migrations:** schema changes are versioned and repeatable across

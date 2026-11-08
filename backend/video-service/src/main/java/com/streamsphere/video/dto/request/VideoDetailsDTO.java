@@ -17,6 +17,7 @@ public class VideoDetailsDTO {
     String status;
     String visibility;
     String thumbnailLink;
+    String thumbnailSource;
     @com.fasterxml.jackson.annotation.JsonProperty("isShort")
     boolean isShort;
 }

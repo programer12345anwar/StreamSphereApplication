@@ -16,7 +16,10 @@ const UploadPage = () => {
   const [searchParams] = useSearchParams();
   const replaceVideoId = searchParams.get("replaceVideoId");
   const fileRef = useRef(null);
+  const thumbnailFileRef = useRef(null);
   const [videoFile, setVideoFile] = useState(null);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [form, setForm] = useState({ name: "", description: "", tags: "", isShort: false });
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -25,6 +28,17 @@ const UploadPage = () => {
   const [loadError, setLoadError] = useState("");
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreview("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [thumbnailFile]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,6 +85,40 @@ const UploadPage = () => {
       }
     };
 
+    const handleThumbnailSelection = async (file) => {
+      if (!file) return;
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(file.type)) {
+        toast({ title: "Unsupported thumbnail", description: "Choose a JPEG, PNG, or WebP image.", variant: "destructive" });
+        return;
+      }
+      if (file.size <= 0 || file.size > 5 * 1024 * 1024) {
+        toast({ title: "Thumbnail is too large", description: "Choose an image no larger than 5 MiB.", variant: "destructive" });
+        return;
+      }
+
+      try {
+        const image = await createImageBitmap(file);
+        const dimensionsAreValid = image.width >= 160
+          && image.height >= 90
+          && image.width <= 4096
+          && image.height <= 4096
+          && image.width * image.height <= 16_777_216;
+        image.close();
+        if (!dimensionsAreValid) {
+          toast({
+            title: "Unsupported thumbnail dimensions",
+            description: "Use an image at least 160×90 and no larger than 4096×4096 (16 megapixels).",
+            variant: "destructive",
+          });
+          return;
+        }
+        setThumbnailFile(file);
+      } catch {
+        toast({ title: "Invalid thumbnail", description: "The selected file could not be decoded as an image.", variant: "destructive" });
+      }
+    };
+
     loadChannel();
 
     return () => {
@@ -110,7 +158,7 @@ const UploadPage = () => {
         if (total) {
           setUploadProgress(Math.round((loaded * 100) / total));
         }
-      }, replaceVideoId);
+      }, replaceVideoId, thumbnailFile);
       toast({
         title: replaceVideoId ? "Video restored" : "Video uploaded",
         description: replaceVideoId
@@ -192,6 +240,44 @@ const UploadPage = () => {
                 accept="video/*"
                 className="hidden"
                 onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="thumbnail-file">Custom thumbnail (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                JPEG, PNG, or WebP up to 5 MiB. If omitted, StreamSphere will generate one from your video.
+              </p>
+              {thumbnailPreview ? (
+                <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted">
+                  <img src={thumbnailPreview} alt="Selected video thumbnail preview" className="h-full w-full object-cover" />
+                  <div className="absolute bottom-2 right-2 flex gap-2">
+                    <Button type="button" variant="secondary" onClick={() => thumbnailFileRef.current?.click()}>
+                      Replace
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={() => {
+                      setThumbnailFile(null);
+                      if (thumbnailFileRef.current) thumbnailFileRef.current.value = "";
+                    }}>
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" onClick={() => thumbnailFileRef.current?.click()}>
+                  Choose thumbnail
+                </Button>
+              )}
+              <input
+                ref={thumbnailFileRef}
+                id="thumbnail-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  void handleThumbnailSelection(e.target.files?.[0] || null);
+                  e.target.value = "";
+                }}
               />
             </div>
 

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.streamsphere.central.event.model.NotificationMessage;
+import com.streamsphere.video.events.VideoThumbnailResultEvent;
 import com.streamsphere.central.event.producer.RabbitMqService;
 import com.streamsphere.central.dto.response.VideoDetailsResponseDTO;
 import com.streamsphere.central.dto.response.VideoFeedItemDTO;
@@ -19,7 +20,11 @@ import com.streamsphere.central.entity.AppUser;
 import com.streamsphere.central.entity.Channel;
 import com.streamsphere.central.entity.Tag;
 import com.streamsphere.central.entity.Video;
+import com.streamsphere.central.entity.VideoProcessingOutbox;
+import com.streamsphere.central.enums.ThumbnailProcessingStatus;
+import com.streamsphere.central.enums.ThumbnailSource;
 import com.streamsphere.central.repository.VideoRepo;
+import com.streamsphere.central.repository.VideoProcessingOutboxRepo;
 
 @Service
 public class VideoService {
@@ -31,15 +36,60 @@ public class VideoService {
     @Autowired
     VideoRepo videoRepo;
     @Autowired
+    VideoProcessingOutboxRepo videoProcessingOutboxRepo;
+    @Autowired
     RabbitMqService rabbitMqService;
-    String videoLink;
-
     public void saveVideo(Video video){
         // Video repository
          videoRepo.save(video);
     }
 
-    @CacheEvict(value = {"video:feed", "video:trending", "video:byId"}, allEntries = true)
+    @Transactional
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
+    public void completeThumbnailProcessing(VideoThumbnailResultEvent event) {
+         Video video = videoRepo.findById(event.videoId())
+                 .orElseThrow(() -> new IllegalArgumentException("Video not found for thumbnail result."));
+
+         if (video.getThumbnailProcessingStatus() == ThumbnailProcessingStatus.READY
+                 || video.getThumbnailProcessingStatus() == ThumbnailProcessingStatus.FALLBACK) {
+             return;
+         }
+         if (event.eventId() == null || !event.eventId().equals(video.getThumbnailProcessingEventId())) {
+             return;
+         }
+
+         ThumbnailProcessingStatus processingStatus =
+                 ThumbnailProcessingStatus.valueOf(event.processingStatus());
+         ThumbnailSource source = ThumbnailSource.valueOf(event.thumbnailSource());
+         if (processingStatus != ThumbnailProcessingStatus.READY
+                 && processingStatus != ThumbnailProcessingStatus.FALLBACK) {
+             throw new IllegalArgumentException("Invalid completed thumbnail processing status.");
+         }
+         if (processingStatus == ThumbnailProcessingStatus.FALLBACK && source != ThumbnailSource.DEFAULT) {
+             throw new IllegalArgumentException("Fallback thumbnails must use the default source.");
+         }
+         if (source == ThumbnailSource.GENERATED
+                 && (event.thumbnailUrl() == null || event.thumbnailUrl().isBlank())) {
+             throw new IllegalArgumentException("Generated thumbnail URL is required.");
+         }
+         if (source == ThumbnailSource.CUSTOM
+                 && (video.getThumbnailLink() == null || !video.getThumbnailLink().equals(event.thumbnailUrl()))) {
+             throw new IllegalArgumentException("Custom thumbnail result does not match the stored asset.");
+         }
+
+         video.setThumbnailLink(event.thumbnailUrl());
+         video.setThumbnailSource(source);
+         video.setThumbnailProcessingStatus(processingStatus);
+         if (event.durationSeconds() != null && event.durationSeconds() > 0) {
+             video.setDurationSeconds(event.durationSeconds());
+         }
+         if (video.getStatus() == com.streamsphere.central.enums.VideoStatus.PROCESSING) {
+             updateVideoStatus(video.getId(), com.streamsphere.central.enums.VideoStatus.PUBLISHED.name());
+         }
+    }
+
+    @Transactional
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
     public void saveVideoDetails(UUID channelId,
                                  VideoDetailsDTO videoDetailsDTO){
         // We need to get the channel object
@@ -53,15 +103,18 @@ public class VideoService {
         video.setName(videoDetailsDTO.getName());
         video.setDescription(videoDetailsDTO.getDescription());
         video.setVideoLink(videoDetailsDTO.getVideoLink());
-        video.setThumbnailLink(null);
+        video.setThumbnailLink(videoDetailsDTO.getThumbnailLink());
+        video.setThumbnailSource(videoDetailsDTO.getThumbnailLink() == null
+                ? null
+                : ThumbnailSource.CUSTOM);
+        video.setThumbnailProcessingStatus(ThumbnailProcessingStatus.PENDING);
+        video.setDurationSeconds(null);
         video.setViews(0);
         video.setUpdatedAt(videoDetailsDTO.getUpdatedAt());
         video.setUploadDateTime(videoDetailsDTO.getUploadDateTime());
         video.setChannel(channel);
         
-        if (videoDetailsDTO.getStatus() != null) {
-            video.setStatus(com.streamsphere.central.enums.VideoStatus.valueOf(videoDetailsDTO.getStatus()));
-        }
+        video.setStatus(com.streamsphere.central.enums.VideoStatus.PROCESSING);
         if (videoDetailsDTO.getVisibility() != null) {
             video.setVisibility(com.streamsphere.central.enums.VideoVisibility.valueOf(videoDetailsDTO.getVisibility()));
         }
@@ -70,17 +123,15 @@ public class VideoService {
         List<Tag> dbTagList = tagService.getAllTagsFromSystem(tags == null ? List.of() : tags);
         video.setTags(dbTagList);
         video.setShort(videoDetailsDTO.isShort());
-        // save these video details inside video table.
+        VideoProcessingOutbox outboxEvent = new VideoProcessingOutbox();
+        outboxEvent.setId(UUID.randomUUID());
+        outboxEvent.setVideoId(video.getId());
+        outboxEvent.setVideoUrl(video.getVideoLink());
+        outboxEvent.setCustomThumbnailUrl(video.getThumbnailLink());
+        video.setThumbnailProcessingEventId(outboxEvent.getId());
+        // Save video and its processing event atomically.
         this.saveVideo(video);
-        this.videoLink = videoDetailsDTO.getVideoLink();
-        
-        // Only notify if PUBLISHED (or we can just skip for now since it's PROCESSING initially)
-        if (video.getStatus() == com.streamsphere.central.enums.VideoStatus.PUBLISHED) {
-            if (channel.getSubscribers() != null && !channel.getSubscribers().isEmpty()) {
-                this.notifySubscibers(channel.getSubscribers());
-            }
-        }
-        
+        videoProcessingOutboxRepo.save(outboxEvent);
         // update channel list
         if (channel.getVideos() == null) {
             channel.setVideos(new java.util.ArrayList<>());
@@ -97,11 +148,12 @@ public class VideoService {
     @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
     public void updateVideoStatus(String videoId, String statusStr) {
         Video video = videoRepo.findById(videoId).orElseThrow(() -> new IllegalArgumentException("Video not found"));
+        boolean alreadyPublished = video.getStatus() == com.streamsphere.central.enums.VideoStatus.PUBLISHED;
         com.streamsphere.central.enums.VideoStatus status = com.streamsphere.central.enums.VideoStatus.valueOf(statusStr);
         video.setStatus(status);
         videoRepo.save(video);
         
-        if (status == com.streamsphere.central.enums.VideoStatus.PUBLISHED) {
+        if (status == com.streamsphere.central.enums.VideoStatus.PUBLISHED && !alreadyPublished) {
             Channel channel = video.getChannel();
             if (channel != null) {
                 // Notify the creator that the video is processed
@@ -113,7 +165,7 @@ public class VideoService {
 
                 // Notify all subscribers
                 if (channel.getSubscribers() != null && !channel.getSubscribers().isEmpty()) {
-                    this.notifySubscibers(channel.getSubscribers());
+                    this.notifySubscibers(channel.getSubscribers(), video.getVideoLink());
                 }
             }
         }
@@ -126,6 +178,8 @@ public class VideoService {
         
         if (videoDetailsDTO.getThumbnailLink() != null) {
             video.setThumbnailLink(videoDetailsDTO.getThumbnailLink());
+            video.setThumbnailSource(ThumbnailSource.CUSTOM);
+            video.setThumbnailProcessingStatus(ThumbnailProcessingStatus.READY);
         }
         if (videoDetailsDTO.getName() != null) {
             video.setName(videoDetailsDTO.getName());
@@ -145,9 +199,27 @@ public class VideoService {
                 .orElse(false);
     }
 
+    @Transactional(readOnly = true)
+    public boolean videoBelongsToUser(String videoId, String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        return videoRepo.findById(videoId)
+                .map(video -> video.getChannel() != null
+                        && video.getChannel().getUser() != null
+                        && email.equalsIgnoreCase(video.getChannel().getUser().getEmail()))
+                .orElse(false);
+    }
+
     @Transactional
     @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
     public void replaceVideoMedia(UUID channelId, String videoId, String videoLink) {
+        replaceVideoMedia(channelId, videoId, videoLink, null);
+    }
+
+    @Transactional
+    @CacheEvict(value = {"video:feed", "video:trending", "video:byId", "video:shorts"}, allEntries = true)
+    public void replaceVideoMedia(UUID channelId, String videoId, String videoLink, String customThumbnailUrl) {
         Video video = videoRepo.findById(videoId)
                 .orElseThrow(() -> new IllegalArgumentException("Video not found."));
         if (video.getChannel() == null || !channelId.equals(video.getChannel().getId())) {
@@ -155,10 +227,24 @@ public class VideoService {
         }
         video.setVideoLink(videoLink);
         video.setUpdatedAt(java.time.LocalDateTime.now());
+        if (customThumbnailUrl != null) {
+            video.setThumbnailLink(customThumbnailUrl);
+            video.setThumbnailSource(ThumbnailSource.CUSTOM);
+        }
+        video.setThumbnailProcessingStatus(ThumbnailProcessingStatus.PENDING);
+        video.setDurationSeconds(null);
+        VideoProcessingOutbox outboxEvent = new VideoProcessingOutbox();
+        outboxEvent.setId(UUID.randomUUID());
+        outboxEvent.setVideoId(video.getId());
+        outboxEvent.setVideoUrl(video.getVideoLink());
+        outboxEvent.setCustomThumbnailUrl(
+                video.getThumbnailSource() == ThumbnailSource.CUSTOM ? video.getThumbnailLink() : null);
+        video.setThumbnailProcessingEventId(outboxEvent.getId());
         videoRepo.save(video);
+        videoProcessingOutboxRepo.save(outboxEvent);
     }
 
-    public void notifySubscibers(List<AppUser> subscribers){
+    public void notifySubscibers(List<AppUser> subscribers, String videoLink){
         for(int i = 0; i < subscribers.size(); i++){
             AppUser subscriber = subscribers.get(i);
             NotificationMessage notificationMessage = new NotificationMessage();
@@ -232,6 +318,9 @@ public class VideoService {
                 video.getDescription(),
                 video.getVideoLink(),
                 video.getThumbnailLink(),
+                video.getThumbnailSource(),
+                video.getThumbnailProcessingStatus(),
+                video.getDurationSeconds(),
                 video.getViews(),
                 video.getUploadDateTime(),
                 channel == null ? null : channel.getId(),
@@ -253,6 +342,9 @@ public class VideoService {
                 video.getDescription(),
                 video.getVideoLink(),
                 video.getThumbnailLink(),
+                video.getThumbnailSource(),
+                video.getThumbnailProcessingStatus(),
+                video.getDurationSeconds(),
                 video.getViews(),
                 video.getUploadDateTime(),
                 channel == null ? null : channel.getId(),

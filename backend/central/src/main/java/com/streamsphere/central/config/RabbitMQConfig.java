@@ -11,6 +11,7 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -30,6 +31,18 @@ public class RabbitMQConfig {
 
     @Value("${rabbitmq.routing.key}")
     private String routingKey;
+    @Value("${thumbnail.events.exchange}")
+    private String thumbnailExchangeName;
+    @Value("${thumbnail.events.request-queue}")
+    private String thumbnailRequestQueueName;
+    @Value("${thumbnail.events.request-routing-key}")
+    private String thumbnailRequestRoutingKey;
+    @Value("${thumbnail.events.result-queue}")
+    private String thumbnailResultQueueName;
+    @Value("${thumbnail.events.result-routing-key}")
+    private String thumbnailResultRoutingKey;
+    @Value("${thumbnail.events.dlx}")
+    private String thumbnailDeadLetterExchangeName;
 
     @Bean
     public DirectExchange getDirectExchange() {
@@ -44,6 +57,71 @@ public class RabbitMQConfig {
         args.put("x-dead-letter-exchange", exchangeName + ".dlx");
         args.put("x-dead-letter-routing-key", routingKey + ".dlq");
         return QueueBuilder.durable(queueName).withArguments(args).build();
+    }
+
+    @Bean("thumbnailExchange")
+    public DirectExchange thumbnailExchange() {
+        return new DirectExchange(thumbnailExchangeName);
+    }
+
+    @Bean("thumbnailDeadLetterExchange")
+    public DirectExchange thumbnailDeadLetterExchange() {
+        return new DirectExchange(thumbnailDeadLetterExchangeName);
+    }
+
+    @Bean("thumbnailRequestQueue")
+    public Queue thumbnailRequestQueue() {
+        return thumbnailQueue(thumbnailRequestQueueName, thumbnailRequestRoutingKey + ".dlq");
+    }
+
+    @Bean("thumbnailResultQueue")
+    public Queue thumbnailResultQueue() {
+        return thumbnailQueue(thumbnailResultQueueName, thumbnailResultRoutingKey + ".dlq");
+    }
+
+    @Bean("thumbnailRequestDeadLetterQueue")
+    public Queue thumbnailRequestDeadLetterQueue() {
+        return QueueBuilder.durable(thumbnailRequestQueueName + ".dlq").build();
+    }
+
+    @Bean("thumbnailResultDeadLetterQueue")
+    public Queue thumbnailResultDeadLetterQueue() {
+        return QueueBuilder.durable(thumbnailResultQueueName + ".dlq").build();
+    }
+
+    @Bean
+    public Binding bindThumbnailRequests(
+            @Qualifier("thumbnailRequestQueue") Queue queue,
+            @Qualifier("thumbnailExchange") DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(thumbnailRequestRoutingKey);
+    }
+
+    @Bean
+    public Binding bindThumbnailResults(
+            @Qualifier("thumbnailResultQueue") Queue queue,
+            @Qualifier("thumbnailExchange") DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(thumbnailResultRoutingKey);
+    }
+
+    @Bean
+    public Binding bindThumbnailRequestDeadLetters(
+            @Qualifier("thumbnailRequestDeadLetterQueue") Queue queue,
+            @Qualifier("thumbnailDeadLetterExchange") DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(thumbnailRequestRoutingKey + ".dlq");
+    }
+
+    @Bean
+    public Binding bindThumbnailResultDeadLetters(
+            @Qualifier("thumbnailResultDeadLetterQueue") Queue queue,
+            @Qualifier("thumbnailDeadLetterExchange") DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(thumbnailResultRoutingKey + ".dlq");
+    }
+
+    private Queue thumbnailQueue(String queueName, String deadLetterRoutingKey) {
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-dead-letter-exchange", thumbnailDeadLetterExchangeName);
+        arguments.put("x-dead-letter-routing-key", deadLetterRoutingKey);
+        return QueueBuilder.durable(queueName).withArguments(arguments).build();
     }
 
     @Bean
@@ -61,6 +139,8 @@ public class RabbitMQConfig {
         connectionFactory.setUsername(username);
         connectionFactory.setPassword(password);
         connectionFactory.setVirtualHost(virtualHost);
+        connectionFactory.setPublisherConfirmType(CachingConnectionFactory.ConfirmType.CORRELATED);
+        connectionFactory.setPublisherReturns(true);
         if (sslEnabled) {
             connectionFactory.getRabbitConnectionFactory().useSslProtocol(SSLContext.getDefault());
             connectionFactory.getRabbitConnectionFactory().enableHostnameVerification();
@@ -69,14 +149,24 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public RabbitTemplate getRabbitTemplate(CachingConnectionFactory connectionFactory) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter());
-        return rabbitTemplate;
+    public Jackson2JsonMessageConverter rabbitMessageConverter() {
+        return new Jackson2JsonMessageConverter();
     }
 
     @Bean
-    public Binding bindQueueWithExchange(DirectExchange exchange, Queue queue) {
+    public RabbitTemplate getRabbitTemplate(
+            CachingConnectionFactory connectionFactory,
+            Jackson2JsonMessageConverter rabbitMessageConverter) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(rabbitMessageConverter);
+        rabbitTemplate.setMandatory(true);
+        return rabbitTemplate;
+    }
+
+    @Bean("notificationBinding")
+    public Binding bindQueueWithExchange(
+            @Qualifier("getDirectExchange") DirectExchange exchange,
+            @Qualifier("getMessagingQueue") Queue queue) {
         return BindingBuilder.bind(queue).to(exchange).with(routingKey);
     }
 }

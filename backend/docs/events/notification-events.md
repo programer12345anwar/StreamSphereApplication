@@ -1,8 +1,42 @@
 # Notification and event flows
 
 StreamSphere currently uses RabbitMQ for asynchronous email notifications and
-Spring WebSocket/STOMP for real-time in-app notifications. They serve different
-purposes and have different persistence and delivery behavior.
+video-thumbnail processing, and Spring WebSocket/STOMP for real-time in-app
+notifications. They serve different purposes and have different persistence
+and delivery behavior.
+
+## Video thumbnail processing
+
+Central records a new video as `PROCESSING` and inserts a request in the same
+PostgreSQL transaction. A scheduled outbox publisher sends committed requests
+to RabbitMQ using publisher confirms and only marks a row published after the
+broker confirms it. Unconfirmed rows remain eligible for a later publish
+attempt.
+
+The Video service consumes `VideoThumbnailRequestedEvent`, downloads the
+ImageKit source to a bounded temporary file, probes its duration, and either
+preserves the supplied custom thumbnail or generates a 1280x720 JPEG with
+FFmpeg. It uploads generated images to ImageKit and publishes a
+`VideoThumbnailResultEvent`. Exhausted thumbnail-generation retries produce
+an explicit `DEFAULT`/`FALLBACK` result rather than silently claiming success.
+The frontend uses a branded local placeholder if that result has no usable URL.
+
+Central applies only the result matching the video's current processing event
+ID and ignores duplicate/stale completions. A successful result records
+`thumbnail_source` (`CUSTOM`, `GENERATED`, or `DEFAULT`),
+`thumbnail_processing_status` (`READY` or `FALLBACK`), `thumbnail_link`, and
+`duration_seconds`, then publishes the video. A media replacement queues a new
+event ID, preventing an older worker result from overwriting newer metadata.
+
+The request and result records use the same JSON field contract in Central and
+Video. The default exchange is `streamsphere-video-events`; the request queue
+is `streamsphere-video-thumbnail-requests` with routing key
+`video.thumbnail.requested`; the result queue is
+`streamsphere-central-video-thumbnail-results` with routing key
+`video.thumbnail.completed`. Both services must use matching
+`VIDEO_THUMBNAIL_*` topology settings. Failed deliveries are routed through the
+configured dead-letter exchange; inspect RabbitMQ's DLQs and service logs
+during deployment smoke tests.
 
 ## RabbitMQ email notifications
 

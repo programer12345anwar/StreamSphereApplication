@@ -56,11 +56,25 @@ public class ApiTemplateImpl implements ApiTemplate {
             Map<String, String> queryParams,
             Object requestBody,
             String authorization) {
+        return makePostCall(apiUrl, endPoint, queryParams, requestBody, authorization, null);
+    }
+
+    @Override
+    public Object makePostCall(
+            String apiUrl,
+            String endPoint,
+            Map<String, String> queryParams,
+            Object requestBody,
+            String authorization,
+            String internalServiceToken) {
         URI url = this.createUrl(apiUrl, endPoint, queryParams);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(HttpHeaders.AUTHORIZATION, authorization);
+        if (internalServiceToken != null) {
+            headers.set("X-Internal-Service-Token", internalServiceToken);
+        }
 
         RequestEntity<Object> request = RequestEntity
                 .post(url)
@@ -82,9 +96,23 @@ public class ApiTemplateImpl implements ApiTemplate {
             Map<String, String> queryParams,
             Object requestBody,
             String authorization) {
+        return makePutCall(apiUrl, endPoint, queryParams, requestBody, authorization, null);
+    }
+
+    @Override
+    public Object makePutCall(
+            String apiUrl,
+            String endPoint,
+            Map<String, String> queryParams,
+            Object requestBody,
+            String authorization,
+            String internalServiceToken) {
         URI url = this.createUrl(apiUrl, endPoint, queryParams);
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION, authorization);
+        if (internalServiceToken != null) {
+            headers.set("X-Internal-Service-Token", internalServiceToken);
+        }
         if (requestBody != null) {
             headers.setContentType(MediaType.APPLICATION_JSON);
         }
