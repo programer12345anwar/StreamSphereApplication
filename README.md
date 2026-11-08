@@ -208,9 +208,8 @@ retention/storage and are not a production-ready configuration by themselves.
 
 
 
-### Api documentation urls
-Deployed URLs
-Based on the Gateway host shown in your screenshot:
+### Api Documentation Urls
+Deployed URLs:
 
 Combined Swagger UI: https://streamsphere-api-gateway.onrender.com/swagger-ui.html
 Gateway OpenAPI JSON: https://streamsphere-api-gateway.onrender.com/v3/api-docs
