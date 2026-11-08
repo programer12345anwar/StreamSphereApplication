@@ -1,6 +1,7 @@
 package com.streamsphere.central.controller;
 
 import com.streamsphere.central.entity.Comment;
+import com.streamsphere.central.dto.response.CommentResponseDTO;
 import com.streamsphere.central.service.EngagementService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -29,26 +30,26 @@ public class EngagementController {
     }
 
     @PostMapping("/video/{videoId}/comment")
-    public ResponseEntity<Comment> addComment(@RequestParam UUID userId,
+    public ResponseEntity<CommentResponseDTO> addComment(@RequestParam UUID userId,
                                               @PathVariable String videoId,
                                               @RequestBody Map<String, String> payload) {
         String text = payload.get("text");
         String parentIdStr = payload.get("parentId");
         UUID parentId = parentIdStr != null ? UUID.fromString(parentIdStr) : null;
         
-        Comment comment = engagementService.addComment(userId, videoId, text, parentId);
+        CommentResponseDTO comment = engagementService.addComment(userId, videoId, text, parentId);
         return ResponseEntity.ok(comment);
     }
 
     @GetMapping("/video/{videoId}/comments")
-    public ResponseEntity<Page<Comment>> getVideoComments(@PathVariable String videoId,
+    public ResponseEntity<Page<CommentResponseDTO>> getVideoComments(@PathVariable String videoId,
                                                           @RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(engagementService.getVideoComments(videoId, page, size));
     }
 
     @GetMapping("/comment/{parentId}/replies")
-    public ResponseEntity<Page<Comment>> getCommentReplies(@PathVariable UUID parentId,
+    public ResponseEntity<Page<CommentResponseDTO>> getCommentReplies(@PathVariable UUID parentId,
                                                            @RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(engagementService.getCommentReplies(parentId, page, size));

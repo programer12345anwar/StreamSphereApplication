@@ -15,6 +15,10 @@ vi.mock("@/components/NotificationDropdown", () => ({
   NotificationDropdown: () => null,
 }));
 
+vi.mock("next-themes", () => ({
+  useTheme: () => ({ theme: "system", setTheme: vi.fn() }),
+}));
+
 describe("Header mobile navigation", () => {
   beforeEach(() => {
     vi.clearAllMocks();

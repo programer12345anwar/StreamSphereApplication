@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Home, ListVideo, Menu, Plus, Search, Smartphone, Upload, User, LogOut } from "lucide-react";
+import { Home, ListVideo, Menu, Moon, Plus, Search, Smartphone, Sun, Upload, User, LogOut, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -21,6 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useTheme } from "next-themes";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -31,6 +35,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -82,6 +87,28 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 </NavLink>
               ))}
             </nav>
+            <div className="my-4 border-t" />
+            <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">Appearance</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: "light", label: "Light", Icon: Sun },
+                { value: "dark", label: "Dark", Icon: Moon },
+                { value: "system", label: "System", Icon: Monitor },
+              ].map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={theme === value}
+                  onClick={() => setTheme(value)}
+                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border text-xs transition-colors ${
+                    theme === value ? "border-primary bg-accent text-foreground" : "border-border text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
           </SheetContent>
         </Sheet>
         <Button
@@ -119,6 +146,27 @@ export function Header({ onToggleSidebar }: HeaderProps) {
       </form>
 
       <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden text-foreground md:inline-flex"
+              aria-label="Choose appearance"
+            >
+              {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+              <DropdownMenuRadioItem value="light"><Sun className="mr-2 h-4 w-4" />Light</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark"><Moon className="mr-2 h-4 w-4" />Dark</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="system"><Monitor className="mr-2 h-4 w-4" />System</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {isAuthenticated ? (
           <>
             <Button

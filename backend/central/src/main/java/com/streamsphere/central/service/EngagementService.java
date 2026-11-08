@@ -4,6 +4,7 @@ import com.streamsphere.central.entity.*;
 import com.streamsphere.central.repository.*;
 import com.streamsphere.central.event.model.NotificationMessage;
 import com.streamsphere.central.event.producer.RabbitMqService;
+import com.streamsphere.central.dto.response.CommentResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -78,7 +79,10 @@ public class EngagementService {
     }
 
     @Transactional
-    public Comment addComment(UUID userId, String videoId, String text, UUID parentId) {
+    public CommentResponseDTO addComment(UUID userId, String videoId, String text, UUID parentId) {
+        if (text == null || text.isBlank() || text.length() > 2000) {
+            throw new IllegalArgumentException("Comment text must contain between 1 and 2000 characters.");
+        }
         AppUser user = userRepo.findById(userId).orElseThrow();
         Video video = videoRepo.findById(videoId).orElseThrow();
         
@@ -110,15 +114,28 @@ public class EngagementService {
             notificationService.createAndSendNotification(targetUser, "COMMENT", message, video);
         }
         
-        return saved;
+        return toCommentResponse(saved);
     }
 
-    public Page<Comment> getVideoComments(String videoId, int page, int size) {
-        return commentRepo.findByVideoIdAndParentCommentIsNullOrderByCreatedAtDesc(videoId, PageRequest.of(page, size));
+    @Transactional(readOnly = true)
+    public Page<CommentResponseDTO> getVideoComments(String videoId, int page, int size) {
+        return commentRepo.findByVideoIdAndParentCommentIsNullOrderByCreatedAtDesc(videoId, PageRequest.of(page, size))
+                .map(this::toCommentResponse);
     }
 
-    public Page<Comment> getCommentReplies(UUID parentId, int page, int size) {
-        return commentRepo.findByParentCommentIdOrderByCreatedAtAsc(parentId, PageRequest.of(page, size));
+    @Transactional(readOnly = true)
+    public Page<CommentResponseDTO> getCommentReplies(UUID parentId, int page, int size) {
+        return commentRepo.findByParentCommentIdOrderByCreatedAtAsc(parentId, PageRequest.of(page, size))
+                .map(this::toCommentResponse);
+    }
+
+    private CommentResponseDTO toCommentResponse(Comment comment) {
+        return new CommentResponseDTO(
+                comment.getId(),
+                comment.getText(),
+                comment.getUser().getName(),
+                comment.getCreatedAt(),
+                comment.getParentComment() == null ? null : comment.getParentComment().getId());
     }
 
     @Transactional

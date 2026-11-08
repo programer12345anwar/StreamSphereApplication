@@ -3,16 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import CommentsSection from "@/components/CommentsSection";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getMyChannel, getResumeTime, updateResumeTime, isLegacyLocalMediaUrl } from "@/lib/api";
+import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getMyChannel, getResumeTime, updateResumeTime, isLegacyLocalMediaUrl, reportVideo } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { Download, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+  ArrowUpDown,
+  Download,
+  Flag,
+  ListPlus,
+  Repeat2,
+  Share2,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { PlaylistModal } from "@/components/PlaylistModal";
-import { ListPlus } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const WatchPage = () => {
   const { videoId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [video, setVideo] = useState(null);
   const [suggested, setSuggested] = useState([]);
@@ -27,6 +38,18 @@ const WatchPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [initialResumeTime, setInitialResumeTime] = useState(0);
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [queueCollapsed, setQueueCollapsed] = useState(false);
+  const [queueShuffled, setQueueShuffled] = useState(false);
+  const [repeatCurrentVideo, setRepeatCurrentVideo] = useState(false);
+  const [queueOrder, setQueueOrder] = useState<string[]>([]);
+  const [playerHeight, setPlayerHeight] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(
+    typeof window === "undefined" ? 800 : window.innerHeight,
+  );
+  const playerSectionRef = useRef<HTMLDivElement>(null);
+
+  const uploadedLabel = useMemo(() => formatUploadDate(video?.uploadedAt), [video?.uploadedAt]);
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +64,13 @@ const WatchPage = () => {
       setLoading(true);
       setError("");
       setPlaybackError(false);
+      setLiked(false);
+      setDisliked(false);
+      setSubscribed(false);
       setIsChannelOwner(false);
+      setQueueOpen(false);
+      setQueueCollapsed(false);
+      setInitialResumeTime(0);
 
       try {
         const [videoData, feed] = await Promise.all([getVideoById(videoId), getVideoFeed(20)]);
@@ -100,12 +129,41 @@ const WatchPage = () => {
     };
   }, [videoId, user]);
 
-  const uploadedLabel = useMemo(() => {
-    if (!video?.uploadedAt) {
-      return "Recently";
-    }
-    return new Date(video.uploadedAt).toLocaleDateString();
-  }, [video]);
+  useEffect(() => {
+    const player = playerSectionRef.current;
+    if (!player) return;
+
+    const updateMeasurements = () => {
+      setPlayerHeight(player.getBoundingClientRect().height);
+      setViewportHeight(window.innerHeight);
+    };
+    updateMeasurements();
+    window.addEventListener("resize", updateMeasurements);
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateMeasurements);
+    observer?.observe(player);
+    return () => {
+      window.removeEventListener("resize", updateMeasurements);
+      observer?.disconnect();
+    };
+  }, [video?.id]);
+
+  const queueSuggestions = useMemo(() => {
+    const candidates = suggested.filter((item) => item.id !== video?.id);
+    if (!queueShuffled || !queueOrder.length) return candidates;
+    const orderById = new Map(queueOrder.map((id, index) => [id, index]));
+    return [...candidates].sort(
+      (left, right) =>
+        (orderById.get(left.id) ?? Number.MAX_SAFE_INTEGER)
+        - (orderById.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [queueOrder, queueShuffled, suggested, video?.id]);
+
+  const queueItems = useMemo(
+    () => video ? [video, ...queueSuggestions] : queueSuggestions,
+    [queueSuggestions, video],
+  );
 
   const handleSubscribeToggle = async () => {
     if (!user) {
@@ -172,7 +230,7 @@ const WatchPage = () => {
   };
 
   useEffect(() => {
-    if (!user?.id || !videoId || !videoRef.current) return;
+    if (!user?.id || !videoId || video?.id !== videoId || !videoRef.current) return;
     
     const interval = setInterval(() => {
       const currentTime = videoRef.current?.currentTime;
@@ -182,7 +240,7 @@ const WatchPage = () => {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [user, videoId, videoRef]);
+  }, [user, videoId, video?.id]);
 
   const handleVideoLoaded = () => {
     if (videoRef.current && initialResumeTime > 0) {
@@ -191,25 +249,60 @@ const WatchPage = () => {
     }
   };
 
+  const handleVideoEnded = () => {
+    if (repeatCurrentVideo && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      void videoRef.current.play().catch(() => {});
+      return;
+    }
+    if (queueSuggestions[0]?.id) {
+      navigate(`/watch/${queueSuggestions[0].id}`);
+    }
+  };
+
+  const toggleQueueShuffle = () => {
+    if (queueShuffled) {
+      setQueueShuffled(false);
+      setQueueOrder([]);
+      return;
+    }
+    const ids = queueSuggestions.map((item) => item.id);
+    for (let index = ids.length - 1; index > 0; index--) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      [ids[index], ids[swapIndex]] = [ids[swapIndex], ids[index]];
+    }
+    setQueueOrder(ids);
+    setQueueShuffled(true);
+  };
+
   return (
     <Layout>
-      {loading && <p className="p-6 text-sm text-muted-foreground">Loading video...</p>}
+      {loading && !video && <p className="p-6 text-sm text-muted-foreground">Loading video...</p>}
       {!loading && error && <p className="p-6 text-sm text-red-500">{error}</p>}
+      {loading && video && <p className="px-3 pt-2 text-xs text-muted-foreground sm:px-6">Loading next video…</p>}
 
-      {!loading && !error && video && (
+      {!error && video && (
         <div className="flex w-full min-w-0 flex-col gap-4 px-3 py-4 sm:gap-6 sm:p-6 lg:flex-row">
           <div className="w-full min-w-0 flex-1">
-            <div className="relative aspect-video w-full max-w-full overflow-hidden rounded-xl bg-black">
-              <video
-                ref={videoRef}
-                src={video.videoLink}
-                controls
-                preload="metadata"
-                className="absolute inset-0 h-full w-full object-contain"
-                onLoadedMetadata={handleVideoLoaded}
-                onError={() => setPlaybackError(true)}
-                onLoadStart={() => setPlaybackError(false)}
-              />
+            <div
+              ref={playerSectionRef}
+              className="sticky top-14 z-40 -mx-3 w-auto bg-background pb-2 sm:mx-0 sm:pb-0"
+            >
+              <div className="relative aspect-video w-full max-w-full overflow-hidden bg-black sm:rounded-xl">
+                <video
+                  ref={videoRef}
+                  src={video.videoLink}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-contain"
+                  onLoadedMetadata={handleVideoLoaded}
+                  onEnded={handleVideoEnded}
+                  onError={() => setPlaybackError(true)}
+                  onLoadStart={() => setPlaybackError(false)}
+                />
+              </div>
             </div>
             {playbackError && (
               <p className="mt-2 text-sm text-red-500" role="alert">
@@ -226,7 +319,7 @@ const WatchPage = () => {
               </Button>
             )}
 
-            <h1 className="mt-4 text-xl font-semibold text-foreground">{video.title || "Untitled video"}</h1>
+            <h1 className="mt-4 break-words text-lg font-semibold text-foreground sm:text-xl">{video.title || "Untitled video"}</h1>
 
             <div className="mt-3 flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
@@ -276,13 +369,17 @@ const WatchPage = () => {
                 <Button variant="secondary" className="gap-2 rounded-full px-3 sm:px-4" onClick={handleShare}>
                   <Share2 className="h-4 w-4" /> Share
                 </Button>
-                <Button variant="secondary"                 className="gap-2 rounded-full px-3 sm:px-4" onClick={() => {
-                  if (!user) {
-                    toast({ title: "Please log in to save to playlist", variant: "destructive" });
-                    return;
-                  }
-                  setIsPlaylistModalOpen(true);
-                }}>
+                <Button
+                  variant="secondary"
+                  className="gap-2 rounded-full px-3 sm:px-4"
+                  onClick={() => {
+                    if (!user) {
+                      toast({ title: "Please log in to save to playlist", variant: "destructive" });
+                      return;
+                    }
+                    setIsPlaylistModalOpen(true);
+                  }}
+                >
                   <ListPlus className="h-4 w-4" /> Save
                 </Button>
                 {video.videoLink && (
@@ -292,25 +389,23 @@ const WatchPage = () => {
                     </a>
                   </Button>
                 )}
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="shrink-0 gap-2 rounded-full px-3 text-red-400 hover:bg-red-500/10 hover:text-red-500 sm:px-4"
                   onClick={() => {
                     if (!user) {
                       toast({ title: "Please log in to report videos", variant: "destructive" });
                       return;
                     }
-                    const reason = prompt("Reason for reporting this video:");
-                    if (reason) {
-                      import("@/lib/api").then(api => {
-                        api.reportVideo(user.id, videoId, reason)
-                          .then(() => toast({ title: "Video reported successfully" }))
-                          .catch(() => toast({ title: "Failed to report video", variant: "destructive" }));
-                      });
+                    const reason = window.prompt("Reason for reporting this video:");
+                    if (reason?.trim()) {
+                      reportVideo(user.id, videoId, reason.trim())
+                        .then(() => toast({ title: "Video reported successfully" }))
+                        .catch(() => toast({ title: "Failed to report video", variant: "destructive" }));
                     }
                   }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg>
+                  <Flag className="h-4 w-4" />
                   Report
                 </Button>
               </div>
@@ -328,34 +423,179 @@ const WatchPage = () => {
 
           <div className="w-full min-w-0 shrink-0 space-y-3 lg:w-96">
             <h3 className="text-sm font-medium text-foreground">Suggested</h3>
-            {suggested.length === 0 && <p className="text-xs text-muted-foreground">No suggestions yet.</p>}
-            {suggested.map((item) => (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="mb-1 w-full justify-between rounded-lg"
+              onClick={() => {
+                setQueueCollapsed(false);
+                setQueueOpen(true);
+              }}
+            >
+              <span>Open playback queue</span>
+              <span className="text-xs text-muted-foreground">{queueItems.length} videos</span>
+            </Button>
+            {queueSuggestions.length === 0 && <p className="text-xs text-muted-foreground">No suggestions yet.</p>}
+            {queueSuggestions.map((item) => (
               <Link key={item.id} to={`/watch/${item.id}`} className="group flex gap-2">
                 <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {item.thumbnailLink || item.thumbnailUrl ? (
-                    <img
-                      src={item.thumbnailLink || item.thumbnailUrl}
-                      alt={item.title}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <svg viewBox="0 0 24 24" className="h-8 w-8 fill-muted-foreground/30">
-                        <path d="M10 8l6 4-6 4V8z" />
-                      </svg>
-                    </div>
+                  <img
+                    src={item.thumbnailLink || item.thumbnailUrl || "/thumbnail-placeholder.svg"}
+                    alt={item.title ? `Thumbnail for ${item.title}` : "Video thumbnail"}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(event) => {
+                      if (!event.currentTarget.src.endsWith("/thumbnail-placeholder.svg")) {
+                        event.currentTarget.src = "/thumbnail-placeholder.svg";
+                      }
+                    }}
+                  />
+                  {formatVideoDuration(item.durationSeconds ?? item.duration) && (
+                    <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-[10px] text-white">
+                      {formatVideoDuration(item.durationSeconds ?? item.duration)}
+                    </span>
                   )}
                 </div>
                 <div className="min-w-0">
                   <p className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{item.channelName}</p>
-                  <p className="text-xs text-muted-foreground">{item.views || 0} views</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.views || 0} views · {formatUploadDate(item.uploadedAt)}
+                  </p>
                 </div>
               </Link>
             ))}
           </div>
         </div>
+      )}
+
+      {video && (
+        <aside
+          className="fixed inset-x-0 bottom-0 z-[45] px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] sm:px-4"
+          aria-label="Playback queue"
+        >
+          {!queueOpen ? (
+            <Button
+              type="button"
+              className="mx-auto flex min-h-12 w-full max-w-3xl justify-between rounded-t-xl rounded-b-md shadow-lg"
+              onClick={() => {
+                setQueueCollapsed(false);
+                setQueueOpen(true);
+              }}
+              aria-label={`Open playback queue with ${queueItems.length} videos`}
+            >
+              <span className="truncate">Up next · {video.title || "Now playing"}</span>
+              <span className="shrink-0 text-xs opacity-80">{queueItems.length} videos</span>
+            </Button>
+          ) : (
+            <section
+              role="region"
+              aria-label="Up next videos"
+              className="mx-auto flex w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-border bg-background text-foreground shadow-2xl"
+              style={{
+                maxHeight: `${Math.max(80, Math.min(520, viewportHeight - 56 - playerHeight - 16))}px`,
+              }}
+            >
+              <button
+                type="button"
+                aria-label={queueCollapsed ? "Expand playback queue" : "Collapse playback queue"}
+                aria-expanded={!queueCollapsed}
+                onClick={() => setQueueCollapsed((collapsed) => !collapsed)}
+                className="flex h-7 shrink-0 items-center justify-center"
+              >
+                <span className="h-1 w-10 rounded-full bg-muted-foreground/40" />
+              </button>
+              <div className="flex shrink-0 items-center gap-3 border-b px-4 pb-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-sm font-semibold">Up next</h2>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {video.channelName || "Recommended for you"} · 1 / {queueItems.length}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={queueShuffled ? "secondary" : "ghost"}
+                  size="icon"
+                  aria-label={queueShuffled ? "Turn shuffle off" : "Shuffle queue"}
+                  aria-pressed={queueShuffled}
+                  onClick={toggleQueueShuffle}
+                >
+                  <ArrowUpDown className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant={repeatCurrentVideo ? "secondary" : "ghost"}
+                  size="icon"
+                  aria-label={repeatCurrentVideo ? "Turn repeat off" : "Repeat current video"}
+                  aria-pressed={repeatCurrentVideo}
+                  onClick={() => setRepeatCurrentVideo((repeat) => !repeat)}
+                >
+                  <Repeat2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close playback queue"
+                  onClick={() => setQueueOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              {!queueCollapsed && (
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
+                  {queueItems.map((item, index) => {
+                    const isCurrent = item.id === video.id;
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/watch/${item.id}`}
+                        onClick={() => setQueueOpen(false)}
+                        aria-current={isCurrent ? "page" : undefined}
+                        className={`flex min-h-[76px] items-center gap-3 rounded-lg p-2 transition-colors ${
+                          isCurrent ? "bg-accent" : "hover:bg-accent/70"
+                        }`}
+                      >
+                        <span className="w-5 shrink-0 text-center text-xs text-muted-foreground">
+                          {isCurrent ? "▶" : index}
+                        </span>
+                        <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-muted sm:w-36">
+                          <img
+                            src={item.thumbnailLink || item.thumbnailUrl || "/thumbnail-placeholder.svg"}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(event) => {
+                              if (!event.currentTarget.src.endsWith("/thumbnail-placeholder.svg")) {
+                                event.currentTarget.src = "/thumbnail-placeholder.svg";
+                              }
+                            }}
+                          />
+                          {formatVideoDuration(item.durationSeconds ?? item.duration) && (
+                            <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[10px] text-white">
+                              {formatVideoDuration(item.durationSeconds ?? item.duration)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm font-medium">{item.title || "Untitled video"}</p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {item.channelName || "Unknown channel"} · {item.views || 0} views · {formatUploadDate(item.uploadedAt)}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                  {!queueItems.length && (
+                    <p className="p-4 text-sm text-muted-foreground">No videos are available in this queue.</p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+        </aside>
       )}
       
       {videoId && (
@@ -371,3 +611,22 @@ const WatchPage = () => {
 };
 
 export default WatchPage;
+
+function formatUploadDate(value?: string | null) {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Recently" : date.toLocaleDateString();
+}
+
+function formatVideoDuration(value?: number | string | null) {
+  if (typeof value === "string" && value.trim()) return value;
+  const durationSeconds = Number(value);
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return "";
+  const seconds = Math.floor(durationSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+    : `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
