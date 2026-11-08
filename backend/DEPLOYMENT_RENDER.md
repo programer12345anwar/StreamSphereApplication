@@ -27,13 +27,14 @@ module POMs.
    change every region together in `render.yaml` before creating resources if
    you want a different supported region.
 4. During initial setup, enter the prompted values for:
-   - `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, and
-     `RABBITMQ_PASSWORD`, and the exact `RABBITMQ_VIRTUAL_HOST` for both
-     Central and Notification.
+   - `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`,
+     `RABBITMQ_PASSWORD`, and the exact `RABBITMQ_VIRTUAL_HOST` for Central,
+     Video, and Notification. These must all point to the same reachable
+     broker. `RABBITMQ_HOST` is only the broker hostname (no `amqp://` or
+     `amqps://` prefix); use the TLS port provided by the broker (commonly
+     `5671`) because `SPRING_RABBITMQ_SSL_ENABLED` is `true`.
    - `IMAGE_URL`, `IMAGE_PUBLIC_KEY`, and `IMAGE_PRIVATE_KEY` for Video.
    - The same `CENTRAL_INTERNAL_SERVICE_TOKEN` for Central and Video.
-   - RabbitMQ host, port, username, password, and virtual host for Central,
-     Video, and Notification.
    - `MAIL_USERNAME` and `MAIL_PASSWORD` for Notification. For Gmail, use the
      sender's full email address and a Google App Password (not the normal
      account password); ensure 2-Step Verification and App Passwords are enabled.
@@ -43,7 +44,8 @@ module POMs.
 5. Review the plan and cost shown by Render, then create the Blueprint. Render
    provisions PostgreSQL and Redis and deploys the four backend services.
 6. Open each service's Events and Logs in Render. Wait for each deployment to
-   finish and for `/actuator/health` to report `UP`.
+   finish and for `/actuator/health/readiness` to report `UP`. Central and Video
+   readiness includes RabbitMQ connectivity.
 7. Frontend and Admin use the public
    `https://streamsphere-api-gateway.onrender.com` URL configured in their API
    clients. If your Render gateway URL changes, update the URL in both apps and
@@ -108,9 +110,13 @@ database and Redis references work. Use a supported Render region and keep the
 region the same for all resources.
 
 If your RabbitMQ provider does not use TLS, set
-`SPRING_RABBITMQ_SSL_ENABLED=false` in both the Central and Notification
-services. Never use local `guest` credentials or `localhost` for production
-dependencies.
+`SPRING_RABBITMQ_SSL_ENABLED=false` in Central, Video, and Notification and use
+the provider's non-TLS port. Never use local `guest` credentials or `localhost`
+for production dependencies. If TCP connections are refused, verify the broker
+is running, the hostname and port match the provider's endpoint, the provider
+allows connections from Render, and the same settings are present in all three
+services. Authentication failures instead typically appear as broker
+`ACCESS_REFUSED` errors.
 
 ## Smoke tests
 

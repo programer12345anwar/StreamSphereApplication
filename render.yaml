@@ -7,7 +7,7 @@ services:
     rootDir: backend
     dockerfilePath: ./central/Dockerfile
     dockerContext: .
-    healthCheckPath: /actuator/health
+    healthCheckPath: /actuator/health/readiness
     envVars:
       - key: DB_CONNECTION_STRING
         fromDatabase:
@@ -123,7 +123,7 @@ services:
     rootDir: backend
     dockerfilePath: ./video-service/Dockerfile
     dockerContext: .
-    healthCheckPath: /actuator/health
+    healthCheckPath: /actuator/health/readiness
     envVars:
       - key: IMAGE_URL
         sync: false

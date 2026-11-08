@@ -127,6 +127,15 @@ Names can have service-specific aliases. Confirm the target service's
 value. Keep ImageKit's private key and all database/broker/SMTP credentials
 server-side.
 
+On Render, configure the same RabbitMQ endpoint and credentials on Central,
+Video, and Notification. `RABBITMQ_HOST` must be a hostname only, without an
+AMQP URL scheme; `RABBITMQ_PORT` must be the broker's reachable port. TLS is
+enabled in the Blueprint, which commonly uses port `5671` (check the broker
+provider's endpoint rather than assuming a port). Central and Video readiness
+health checks include RabbitMQ connectivity. A TCP `Connection refused` points
+to an unreachable broker host/port or provider network policy, not invalid
+RabbitMQ credentials.
+
 ## Build and test
 
 From the repository root:
