@@ -197,15 +197,15 @@ const WatchPage = () => {
       {!loading && error && <p className="p-6 text-sm text-red-500">{error}</p>}
 
       {!loading && !error && video && (
-        <div className="flex flex-col gap-6 p-6 lg:flex-row">
-          <div className="min-w-0 flex-1">
-            <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+        <div className="flex w-full min-w-0 flex-col gap-4 px-3 py-4 sm:gap-6 sm:p-6 lg:flex-row">
+          <div className="w-full min-w-0 flex-1">
+            <div className="relative aspect-video w-full max-w-full overflow-hidden rounded-xl bg-black">
               <video
                 ref={videoRef}
                 src={video.videoLink}
                 controls
                 preload="metadata"
-                className="h-full w-full"
+                className="absolute inset-0 h-full w-full object-contain"
                 onLoadedMetadata={handleVideoLoaded}
                 onError={() => setPlaybackError(true)}
                 onLoadStart={() => setPlaybackError(false)}
@@ -228,8 +228,8 @@ const WatchPage = () => {
 
             <h1 className="mt-4 text-xl font-semibold text-foreground">{video.title || "Untitled video"}</h1>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+            <div className="mt-3 flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-primary/20 text-primary">
                     {(video.channelName || "C").charAt(0).toUpperCase()}
@@ -242,7 +242,7 @@ const WatchPage = () => {
                 {user && user.id !== video.channel?.userId && (
                   <Button 
                     variant={subscribed ? "secondary" : "default"} 
-                    className="ml-4 rounded-full px-6"
+                    className="rounded-full px-4 sm:ml-1 sm:px-6"
                     onClick={handleSubscribeToggle}
                     disabled={subLoading}
                   >
@@ -251,11 +251,11 @@ const WatchPage = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
                 <div className="flex items-center overflow-hidden rounded-full bg-secondary">
                   <button
                     onClick={() => handleLikeToggle(true)}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-surface-hover ${
+                    className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-surface-hover sm:px-4 ${
                       liked ? "text-primary" : "text-foreground"
                     }`}
                     aria-pressed={liked}
@@ -273,10 +273,10 @@ const WatchPage = () => {
                     <ThumbsDown className="h-4 w-4" />
                   </button>
                 </div>
-                <Button variant="secondary" className="gap-2 rounded-full" onClick={handleShare}>
+                <Button variant="secondary" className="gap-2 rounded-full px-3 sm:px-4" onClick={handleShare}>
                   <Share2 className="h-4 w-4" /> Share
                 </Button>
-                <Button variant="secondary" className="gap-2 rounded-full" onClick={() => {
+                <Button variant="secondary"                 className="gap-2 rounded-full px-3 sm:px-4" onClick={() => {
                   if (!user) {
                     toast({ title: "Please log in to save to playlist", variant: "destructive" });
                     return;
@@ -286,7 +286,7 @@ const WatchPage = () => {
                   <ListPlus className="h-4 w-4" /> Save
                 </Button>
                 {video.videoLink && (
-                  <Button asChild variant="secondary" className="gap-2 rounded-full">
+                  <Button asChild variant="secondary" className="gap-2 rounded-full px-3 sm:px-4">
                     <a href={video.videoLink} download>
                       <Download className="h-4 w-4" /> Download
                     </a>
@@ -294,7 +294,7 @@ const WatchPage = () => {
                 )}
                 <Button 
                   variant="ghost" 
-                  className="gap-2 rounded-full text-red-400 hover:text-red-500 hover:bg-red-500/10" 
+                  className="shrink-0 gap-2 rounded-full px-3 text-red-400 hover:bg-red-500/10 hover:text-red-500 sm:px-4"
                   onClick={() => {
                     if (!user) {
                       toast({ title: "Please log in to report videos", variant: "destructive" });
@@ -326,7 +326,7 @@ const WatchPage = () => {
             <CommentsSection videoId={videoId} />
           </div>
 
-          <div className="w-full shrink-0 space-y-3 lg:w-96">
+          <div className="w-full min-w-0 shrink-0 space-y-3 lg:w-96">
             <h3 className="text-sm font-medium text-foreground">Suggested</h3>
             {suggested.length === 0 && <p className="text-xs text-muted-foreground">No suggestions yet.</p>}
             {suggested.map((item) => (

@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
-import { Search, Upload, Menu, User, LogOut, Plus } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Home, ListVideo, Menu, Plus, Search, Smartphone, Upload, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FormEvent, useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -23,6 +30,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -32,13 +40,55 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between gap-2 bg-background px-3 sm:gap-4 sm:px-4">
-      <div className="flex items-center gap-2 sm:gap-4">
+    <header className="fixed left-0 right-0 top-0 z-50 flex h-14 min-w-0 items-center justify-between gap-2 bg-background px-2 sm:gap-4 sm:px-4">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-foreground md:hidden"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[min(18rem,85vw)] p-4">
+            <SheetTitle className="mb-5 text-left">Navigation</SheetTitle>
+            <SheetDescription className="sr-only">
+              Navigate to StreamSphere pages.
+            </SheetDescription>
+            <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
+              {[
+                { to: "/", label: "Home", Icon: Home },
+                { to: "/shorts", label: "Shorts", Icon: Smartphone },
+                { to: "/playlists", label: "Playlists", Icon: ListVideo },
+                { to: "/upload", label: "Upload", Icon: Upload },
+              ].map(({ to, label, Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center gap-4 rounded-lg px-3 text-sm transition-colors ${
+                      isActive
+                        ? "bg-accent font-medium text-foreground"
+                        : "text-foreground hover:bg-accent"
+                    }`
+                  }
+                >
+                  <Icon className="h-5 w-5" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleSidebar}
-          className="text-foreground"
+          className="hidden text-foreground md:inline-flex"
           aria-label="Toggle navigation"
         >
           <Menu className="h-5 w-5" />
@@ -48,13 +98,13 @@ export function Header({ onToggleSidebar }: HeaderProps) {
         </Link>
       </div>
 
-      <form onSubmit={handleSearch} className="flex max-w-2xl flex-1 items-center">
-        <div className="flex flex-1">
+      <form onSubmit={handleSearch} className="flex min-w-0 max-w-2xl flex-1 items-center">
+        <div className="flex min-w-0 flex-1">
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search"
-            className="rounded-r-none border-r-0 bg-background focus-visible:ring-1 focus-visible:ring-primary/50"
+            className="min-w-0 rounded-r-none border-r-0 bg-background focus-visible:ring-1 focus-visible:ring-primary/50"
           />
           <Button
             type="submit"
@@ -68,7 +118,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
         </div>
       </form>
 
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
         {isAuthenticated ? (
           <>
             <Button
