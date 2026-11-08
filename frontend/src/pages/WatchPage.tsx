@@ -10,8 +10,12 @@ import {
   Download,
   Flag,
   ListPlus,
+  Pause,
+  Play,
   Repeat2,
   Share2,
+  SkipBack,
+  SkipForward,
   ThumbsDown,
   ThumbsUp,
   X,
@@ -31,6 +35,7 @@ const WatchPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [playbackError, setPlaybackError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isChannelOwner, setIsChannelOwner] = useState(false);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
@@ -66,6 +71,7 @@ const WatchPage = () => {
       setLoading(true);
       setError("");
       setPlaybackError(false);
+      setIsPlaying(false);
       setLiked(false);
       setDisliked(false);
       setSubscribed(false);
@@ -79,7 +85,7 @@ const WatchPage = () => {
         if (!mounted) return;
 
         setVideo(videoData || null);
-        setSuggested(Array.isArray(feed) ? feed.filter((item) => item.id !== videoId) : []);
+        setSuggested(Array.isArray(feed) ? feed : []);
 
         if (user?.email && videoData?.channelId) {
           try {
@@ -163,9 +169,42 @@ const WatchPage = () => {
   }, [queueOrder, queueShuffled, suggested, video?.id]);
 
   const queueItems = useMemo(
-    () => video ? [video, ...queueSuggestions] : queueSuggestions,
-    [queueSuggestions, video],
+    () => {
+      if (!video) return suggested;
+      const currentIndex = suggested.findIndex((item) => item.id === video.id);
+      const candidates = currentIndex < 0
+        ? [video, ...suggested]
+        : suggested.map((item) => item.id === video.id ? video : item);
+      if (!queueShuffled || !queueOrder.length) return candidates;
+      const orderById = new Map(queueOrder.map((id, index) => [id, index]));
+      return [...candidates].sort(
+        (left, right) =>
+          (orderById.get(left.id) ?? Number.MAX_SAFE_INTEGER)
+          - (orderById.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+    },
+    [queueOrder, queueShuffled, suggested, video],
   );
+  const currentQueueIndex = queueItems.findIndex((item) => item.id === video?.id);
+  const previousQueueItem = currentQueueIndex > 0 ? queueItems[currentQueueIndex - 1] : null;
+  const nextQueueItem = currentQueueIndex >= 0 ? queueItems[currentQueueIndex + 1] : null;
+
+  const navigateInQueue = (direction: "previous" | "next") => {
+    const target = direction === "previous" ? previousQueueItem : nextQueueItem;
+    if (target) navigate(`/watch/${target.id}`);
+  };
+
+  const togglePlayback = () => {
+    const player = videoRef.current;
+    if (!player) return;
+    if (player.paused) {
+      void player.play().catch(() => {
+        toast({ title: "Unable to play video", description: "Use the player controls to try again.", variant: "destructive" });
+      });
+    } else {
+      player.pause();
+    }
+  };
 
   const handleSubscribeToggle = async () => {
     if (!user) {
@@ -257,9 +296,7 @@ const WatchPage = () => {
       void videoRef.current.play().catch(() => {});
       return;
     }
-    if (queueSuggestions[0]?.id) {
-      navigate(`/watch/${queueSuggestions[0].id}`);
-    }
+    if (nextQueueItem?.id) navigate(`/watch/${nextQueueItem.id}`);
   };
 
   const toggleQueueShuffle = () => {
@@ -268,7 +305,7 @@ const WatchPage = () => {
       setQueueOrder([]);
       return;
     }
-    const ids = queueSuggestions.map((item) => item.id);
+    const ids = queueItems.map((item) => item.id);
     for (let index = ids.length - 1; index > 0; index--) {
       const swapIndex = Math.floor(Math.random() * (index + 1));
       [ids[index], ids[swapIndex]] = [ids[swapIndex], ids[index]];
@@ -290,7 +327,7 @@ const WatchPage = () => {
               ref={playerSectionRef}
               className="sticky top-14 z-40 -mx-3 w-auto bg-background pb-2 sm:mx-0 sm:pb-0"
             >
-              <div className="relative aspect-video w-full max-w-full overflow-hidden bg-black sm:rounded-xl">
+              <div className="group relative aspect-video w-full max-w-full overflow-hidden bg-black sm:rounded-xl">
                 <video
                   ref={videoRef}
                   src={video.videoLink}
@@ -301,9 +338,47 @@ const WatchPage = () => {
                   className="absolute inset-0 h-full w-full object-contain"
                   onLoadedMetadata={handleVideoLoaded}
                   onEnded={handleVideoEnded}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
                   onError={() => setPlaybackError(true)}
                   onLoadStart={() => setPlaybackError(false)}
                 />
+                <div
+                  role="group"
+                  className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+                  aria-label="Video navigation controls"
+                >
+                  <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-black/55 p-2 text-white shadow-lg backdrop-blur-sm sm:gap-4 sm:p-3">
+                    <button
+                      type="button"
+                      aria-label="Play previous video"
+                      title={previousQueueItem ? "Previous video" : "No previous video"}
+                      disabled={!previousQueueItem}
+                      onClick={() => navigateInQueue("previous")}
+                      className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-40 sm:h-12 sm:w-12"
+                    >
+                      <SkipBack className="h-6 w-6" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={isPlaying ? "Pause video" : "Play video"}
+                      onClick={togglePlayback}
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-14 sm:w-14"
+                    >
+                      {isPlaying ? <Pause className="h-6 w-6 fill-current" /> : <Play className="ml-1 h-6 w-6 fill-current" />}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Play next video"
+                      title={nextQueueItem ? "Next video" : "No next video"}
+                      disabled={!nextQueueItem}
+                      onClick={() => navigateInQueue("next")}
+                      className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-40 sm:h-12 sm:w-12"
+                    >
+                      <SkipForward className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             {playbackError && (
@@ -508,7 +583,7 @@ const WatchPage = () => {
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-sm font-semibold">Up next</h2>
                   <p className="truncate text-xs text-muted-foreground">
-                    {video.channelName || "Recommended for you"} · 1 / {queueItems.length}
+                    {video.channelName || "Recommended for you"} · {currentQueueIndex + 1} / {queueItems.length}
                   </p>
                 </div>
                 <Button
@@ -556,7 +631,7 @@ const WatchPage = () => {
                         }`}
                       >
                         <span className="w-5 shrink-0 text-center text-xs text-muted-foreground">
-                          {isCurrent ? "▶" : index}
+                          {isCurrent ? "▶" : index + 1}
                         </span>
                         <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-muted sm:w-36">
                           <img

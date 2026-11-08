@@ -151,14 +151,16 @@ public class AdminService {
     }
 
     private static com.streamsphere.central.dto.response.AdminReportDTO toAdminReportDTO(com.streamsphere.central.entity.VideoReport r) {
+        Video video = r.getVideo();
+        AppUser reporter = r.getUser();
         return new com.streamsphere.central.dto.response.AdminReportDTO(
                 r.getId(),
-                r.getVideo().getId(),
-                r.getVideo().getName(),
-                r.getVideo().getVideoLink(),
-                r.getVideo().getThumbnailLink(),
-                r.getUser().getName(),
-                r.getUser().getEmail(),
+                video == null ? null : video.getId(),
+                video == null ? null : video.getName(),
+                video == null ? null : video.getVideoLink(),
+                video == null ? null : video.getThumbnailLink(),
+                reporter == null ? null : reporter.getName(),
+                reporter == null ? null : reporter.getEmail(),
                 r.getReason(),
                 r.getDescription(),
                 "DISMISSED".equalsIgnoreCase(r.getStatus()) ? "REJECTED" : r.getStatus(),

@@ -60,4 +60,22 @@ describe("AdminReportsPage", () => {
 
     expect(await screen.findByText("No reports have been submitted yet.")).toBeInTheDocument();
   });
+
+  it("renders legacy reports with missing linked video or reporter data", async () => {
+    vi.mocked(request).mockResolvedValue({
+      ...page,
+      content: [{
+        ...page.content[0],
+        videoId: null,
+        videoName: null,
+        reporterName: null,
+        reporterEmail: null,
+      }],
+    });
+    renderPage();
+
+    expect(await screen.findAllByText("Video unavailable")).not.toHaveLength(0);
+    expect(screen.getAllByText("Unknown user").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("No email available").length).toBeGreaterThan(0);
+  });
 });

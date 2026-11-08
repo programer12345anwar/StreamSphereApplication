@@ -79,4 +79,26 @@ describe("WatchPage playback queue", () => {
     await waitFor(() => expect(document.querySelector("video")).toBe(player));
     expect(player).toHaveAttribute("src", "https://media.example/video-2.mp4");
   });
+
+  it("navigates through recommendations and disables controls at queue boundaries", async () => {
+    render(
+      <MemoryRouter initialEntries={["/watch/video-1"]}>
+        <Routes>
+          <Route path="/watch/:videoId" element={<WatchPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Video one" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Play previous video" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Play next video" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Play next video" }));
+    expect(await screen.findByRole("heading", { name: "Video two" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Play previous video" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Play next video" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Play previous video" }));
+    expect(await screen.findByRole("heading", { name: "Video one" })).toBeInTheDocument();
+  });
 });

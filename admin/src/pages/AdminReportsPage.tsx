@@ -5,12 +5,12 @@ import { request } from "@/lib/adminApi";
 
 type Report = {
   id: number;
-  videoId: string;
-  videoName: string;
-  videoLink?: string;
-  thumbnailUrl?: string;
-  reporterName: string;
-  reporterEmail: string;
+  videoId: string | null;
+  videoName: string | null;
+  videoLink?: string | null;
+  thumbnailUrl?: string | null;
+  reporterName: string | null;
+  reporterEmail: string | null;
   reason: string;
   description?: string | null;
   status: "PENDING" | "REVIEWED" | "RESOLVED" | "REJECTED";
@@ -188,15 +188,15 @@ export default function AdminReportsPage() {
                             onError={(event) => { event.currentTarget.src = "/thumbnail-placeholder.svg"; }}
                           />
                           <div className="min-w-0">
-                            <p className="line-clamp-2 font-medium text-slate-100">{report.videoName}</p>
-                            <p className="mt-1 break-all font-mono text-xs text-slate-500">{report.videoId}</p>
+                            <p className="line-clamp-2 font-medium text-slate-100">{report.videoName || "Video unavailable"}</p>
+                            <p className="mt-1 break-all font-mono text-xs text-slate-500">{report.videoId || "No video ID"}</p>
                             {report.videoLink && <a className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-300 hover:underline" href={report.videoLink} target="_blank" rel="noreferrer">Open video <ExternalLink className="h-3 w-3" /></a>}
                           </div>
                         </div>
                       </td>
                       <td className="break-words px-3 py-4">
                         <p className="font-medium text-slate-200">{report.reporterName || "Unknown user"}</p>
-                        <p className="mt-1 text-xs text-slate-500">{report.reporterEmail}</p>
+                        <p className="mt-1 text-xs text-slate-500">{report.reporterEmail || "No email available"}</p>
                       </td>
                       <td className="break-words px-3 py-4">
                         <p className="font-medium text-slate-200">#{report.id} · {report.reason}</p>
@@ -228,17 +228,17 @@ export default function AdminReportsPage() {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <p className="min-w-0 flex-1 break-words font-medium text-slate-100">{report.videoName}</p>
+                        <p className="min-w-0 flex-1 break-words font-medium text-slate-100">{report.videoName || "Video unavailable"}</p>
                         <span className={`rounded-full border px-2 py-1 text-[10px] ${statusStyle(report.status)}`}>{report.status}</span>
                       </div>
-                      <p className="mt-1 break-all font-mono text-[11px] text-slate-500">{report.videoId}</p>
+                      <p className="mt-1 break-all font-mono text-[11px] text-slate-500">{report.videoId || "No video ID"}</p>
                       {report.videoLink && <a href={report.videoLink} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-300">Open video <ExternalLink className="h-3 w-3" /></a>}
                     </div>
                   </div>
                   <details className="mt-3 border-t border-slate-800 pt-3">
                     <summary className="cursor-pointer text-sm font-medium text-slate-300">Report #{report.id} details</summary>
                     <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                      <div><dt className="text-xs text-slate-500">Reporter</dt><dd className="break-words text-slate-200">{report.reporterName} · {report.reporterEmail}</dd></div>
+                      <div><dt className="text-xs text-slate-500">Reporter</dt><dd className="break-words text-slate-200">{report.reporterName || "Unknown user"} · {report.reporterEmail || "No email available"}</dd></div>
                       <div><dt className="text-xs text-slate-500">Reason</dt><dd className="break-words text-slate-200">{report.reason}</dd></div>
                       {report.description && <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Details</dt><dd className="break-words text-slate-300">{report.description}</dd></div>}
                       <div><dt className="text-xs text-slate-500">Submitted</dt><dd className="text-slate-300">{new Date(report.createdAt).toLocaleString()}</dd></div>
