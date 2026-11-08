@@ -205,3 +205,23 @@ retention/storage and are not a production-ready configuration by themselves.
 - [Development and deployment guide](backend/docs/development-and-deployment.md)
 - [Frontend instructions](frontend/README.md)
 - [Admin instructions](admin/README.md)
+
+
+
+### Api documentation urls
+Deployed URLs
+Based on the Gateway host shown in your screenshot:
+
+Combined Swagger UI: https://streamsphere-api-gateway.onrender.com/swagger-ui.html
+Gateway OpenAPI JSON: https://streamsphere-api-gateway.onrender.com/v3/api-docs
+Central OpenAPI JSON: https://streamsphere-api-gateway.onrender.com/docs/central/v3/api-docs
+Video OpenAPI JSON: https://streamsphere-api-gateway.onrender.com/docs/video/v3/api-docs
+Notification OpenAPI JSON: https://streamsphere-api-gateway.onrender.com/docs/notification/v3/api-docs
+
+
+Local URLs
+Service	Swagger UI	OpenAPI JSON
+Gateway	http://localhost:8080/swagger-ui.html	http://localhost:8080/v3/api-docs
+Central	http://localhost:8084/swagger-ui.html	http://localhost:8084/v3/api-docs
+Video	http://localhost:8083/swagger-ui.html	http://localhost:8083/v3/api-docs
+Notification	http://localhost:8082/swagger-ui.html	http://localhost:8082/v3/api-docs
