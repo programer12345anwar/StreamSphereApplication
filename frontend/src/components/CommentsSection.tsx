@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { MessageCircle, Reply, Send } from "lucide-react";
+import { Heart, MessageCircle, Reply, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { addCommentToVideo, getCommentReplies, getVideoComments } from "@/lib/api";
+import { addCommentToVideo, getCommentReplies, getVideoComments, toggleCommentLike } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ interface CommentItem {
   authorName: string;
   createdAt?: string;
   parentId?: string | null;
+  likeCount: number;
+  likedByCurrentUser: boolean;
 }
 
 interface CommentPage {
@@ -35,6 +37,8 @@ function normalizeComment(value: any): CommentItem | null {
     authorName: value.authorName || value.user?.name || "StreamSphere user",
     createdAt: value.createdAt,
     parentId: value.parentId ?? value.parentComment?.id ?? null,
+    likeCount: Number(value.likeCount ?? 0),
+    likedByCurrentUser: Boolean(value.likedByCurrentUser),
   };
 }
 
@@ -65,7 +69,7 @@ function formatCommentDate(value?: string) {
   return date.toLocaleDateString();
 }
 
-function CommentsSection({ videoId }: { videoId: string }) {
+function CommentsSection({ videoId, initialExpanded = false }: { videoId: string; initialExpanded?: boolean }) {
   const { user } = useAuth();
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [totalComments, setTotalComments] = useState(0);
@@ -80,6 +84,7 @@ function CommentsSection({ videoId }: { videoId: string }) {
   const [replyDraft, setReplyDraft] = useState("");
   const [repliesByComment, setRepliesByComment] = useState<Record<string, CommentItem[]>>({});
   const [replyStatus, setReplyStatus] = useState<Record<string, "loading" | "loaded" | "error">>({});
+  const [likingCommentIds, setLikingCommentIds] = useState<Set<string>>(new Set());
   const activeVideoId = useRef(videoId);
 
   async function loadFirstPage() {
@@ -115,6 +120,41 @@ function CommentsSection({ videoId }: { videoId: string }) {
     setReplyStatus({});
     void loadFirstPage();
   }, [videoId]);
+
+  useEffect(() => {
+    if (initialExpanded) setExpanded(true);
+  }, [initialExpanded]);
+
+  async function handleCommentLike(comment: CommentItem) {
+    if (!user?.id) {
+      toast({ title: "Sign in to like comments" });
+      return;
+    }
+    if (likingCommentIds.has(comment.id)) return;
+    setLikingCommentIds((previous) => new Set(previous).add(comment.id));
+    try {
+      const result = await toggleCommentLike(comment.id);
+      const update = (item: CommentItem) => item.id === comment.id
+        ? { ...item, likeCount: result.likeCount, likedByCurrentUser: result.likedByCurrentUser }
+        : item;
+      setComments((previous) => previous.map(update));
+      setRepliesByComment((previous) => Object.fromEntries(
+        Object.entries(previous).map(([parentId, replies]) => [parentId, replies.map(update)]),
+      ));
+    } catch (error) {
+      toast({
+        title: "Could not update comment like",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setLikingCommentIds((previous) => {
+        const next = new Set(previous);
+        next.delete(comment.id);
+        return next;
+      });
+    }
+  }
 
   async function loadMoreComments() {
     if (loadingMore || !hasMore) return;
@@ -284,6 +324,19 @@ function CommentsSection({ videoId }: { videoId: string }) {
                   </time>
                 </div>
                 <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed">{comment.text}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={comment.likedByCurrentUser ? "Unlike comment" : "Like comment"}
+                  aria-pressed={comment.likedByCurrentUser}
+                  disabled={likingCommentIds.has(comment.id)}
+                  onClick={() => void handleCommentLike(comment)}
+                  className={`mt-1 min-h-9 px-2 ${comment.likedByCurrentUser ? "text-rose-500" : "text-muted-foreground"}`}
+                >
+                  <Heart className={`mr-1 h-4 w-4 ${comment.likedByCurrentUser ? "fill-current" : ""}`} />
+                  {comment.likeCount.toLocaleString()}
+                </Button>
                 {expanded && (
                   <>
                     <Button
@@ -316,6 +369,19 @@ function CommentsSection({ videoId }: { videoId: string }) {
                             <div className="min-w-0">
                               <p className="text-xs font-medium">{reply.authorName} <span className="ml-1 font-normal text-muted-foreground">{formatCommentDate(reply.createdAt)}</span></p>
                               <p className="mt-1 break-words text-sm">{reply.text}</p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={reply.likedByCurrentUser ? "Unlike comment" : "Like comment"}
+                                aria-pressed={reply.likedByCurrentUser}
+                                disabled={likingCommentIds.has(reply.id)}
+                                onClick={() => void handleCommentLike(reply)}
+                                className={`mt-1 min-h-8 px-2 text-xs ${reply.likedByCurrentUser ? "text-rose-500" : "text-muted-foreground"}`}
+                              >
+                                <Heart className={`mr-1 h-3.5 w-3.5 ${reply.likedByCurrentUser ? "fill-current" : ""}`} />
+                                {reply.likeCount.toLocaleString()}
+                              </Button>
                             </div>
                           </div>
                         ))}

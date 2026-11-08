@@ -326,6 +326,19 @@ export async function toggleLikeVideo(videoId, userId, isLike) {
   );
 }
 
+export async function getVideoEngagement(videoId) {
+  return apiRequest(`/api/v1/central/engagement/video/${encodeURIComponent(videoId)}/engagement`, {
+    headers: authHeaders(),
+  });
+}
+
+export async function toggleCommentLike(commentId) {
+  return apiRequest(`/api/v1/central/engagement/comment/${encodeURIComponent(commentId)}/like`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
 export async function addCommentToVideo(videoId, userId, text, parentId = null) {
   requireUserId(userId);
   return apiRequest(
@@ -339,11 +352,15 @@ export async function addCommentToVideo(videoId, userId, text, parentId = null) 
 }
 
 export async function getVideoComments(videoId, page = 0, size = 20) {
-  return apiRequest(`/api/v1/central/engagement/video/${videoId}/comments?page=${page}&size=${size}`);
+  return apiRequest(`/api/v1/central/engagement/video/${videoId}/comments?page=${page}&size=${size}`, {
+    headers: authHeaders(),
+  });
 }
 
 export async function getCommentReplies(parentId, page = 0, size = 20) {
-  return apiRequest(`/api/v1/central/engagement/comment/${parentId}/replies?page=${page}&size=${size}`);
+  return apiRequest(`/api/v1/central/engagement/comment/${parentId}/replies?page=${page}&size=${size}`, {
+    headers: authHeaders(),
+  });
 }
 
 export async function recordVideoView(videoId) {
@@ -405,14 +422,13 @@ export async function updateResumeTime(userId, videoId, resumeTime) {
   );
 }
 
-export async function reportVideo(userId, videoId, reason) {
-  requireUserId(userId);
+export async function reportVideo(videoId, reason, description = "") {
   return apiRequest(
-    `/api/v1/central/engagement/video/${encodeURIComponent(videoId)}/report?userId=${encodeURIComponent(userId)}`,
+    `/api/v1/central/engagement/video/${encodeURIComponent(videoId)}/report`,
     {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, description }),
     }
   );
 }

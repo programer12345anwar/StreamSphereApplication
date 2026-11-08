@@ -20,6 +20,8 @@ future improvements.
 1. **Client and entry point:** React frontend and admin console use the Gateway
    `/api/config` endpoint to discover the public API base URL. The Gateway
    routes requests to the responsible backend service and owns browser CORS.
+   Both clients use responsive layouts; the Admin navigation becomes a mobile
+   drawer and the video watch/Shorts experiences adapt to smaller screens.
 2. **Identity:** Central registers/logs in users, hashes passwords with BCrypt,
    and issues JWTs. Service security filters use those tokens to authenticate
    requests; Admin operations require the `ADMIN` role.
@@ -37,6 +39,11 @@ future improvements.
    bounded TTLs and cache invalidation; Flyway manages schema migrations;
    Docker/Render host services and dependencies; CI tests backend modules and
    builds the frontend.
+7. **Moderation and Shorts engagement:** Authenticated users submit reports
+   with reporter identity taken from their JWT; admins review and update
+   persisted reports. Comment likes are stored in PostgreSQL, and the React
+   Shorts page presents the existing Shorts and engagement APIs as a
+   full-screen, visibility-activated feed.
 
 For already existing users, the authenticated profile endpoint also lets a new
 frontend version backfill a missing user ID into a stored browser session.
@@ -51,11 +58,12 @@ frontend version backfill a missing user ID into a stored browser session.
 | Video metadata and Home feed | Central | PostgreSQL, Redis |
 | Video byte storage and playback CDN | ImageKit | Browser; Video verifies asset |
 | Search, trending, shorts | Central | PostgreSQL, Redis for selected cached reads |
-| Likes, comments, watch history, playlists, reports | Central | PostgreSQL |
+| Likes, comments, comment likes, watch history, playlists, reports | Central | PostgreSQL |
 | Email notifications | Central + Notification | RabbitMQ, SMTP |
 | Real-time in-app notifications | Central | PostgreSQL, SockJS/STOMP WebSocket |
 | Browser routing and CORS | API Gateway | Central, Video, Notification |
 | Admin moderation and analytics | Central | Admin frontend |
+| Responsive navigation, watch, Shorts, and admin layouts | React clients | Mobile-aware layouts and playback |
 
 ## Questions you may be asked
 
@@ -117,6 +125,21 @@ trending/shorts, individual video metadata, and channel summaries. TTLs bound
 staleness and write operations evict related entries. PostgreSQL remains the
 source of truth; cache failures should fall back to database-backed behavior.
 
+### How are reports moderated?
+
+Central derives a submitted report's reporter from the authenticated request
+principal and stores the report with `PENDING` status and an optional
+description. The Admin UI calls role-protected, paginated Central endpoints to
+search/filter reports and update their status. This is a synchronous
+database-backed workflow, not a RabbitMQ event flow.
+
+### How do comment likes and Shorts work?
+
+Central stores comment likes with a unique user/comment constraint and returns
+like counts plus the viewer's like state in comment responses. The Shorts UI
+uses the existing public Shorts feed and engagement endpoints; it does not
+have a separate backend service or feed pipeline.
+
 ### How does authentication work?
 
 Central authenticates credentials and issues a JWT containing the identity and
@@ -165,9 +188,12 @@ deployment succeeding.
 - `service-registry` and infrastructure examples exist in the repository, but
   the current Render Blueprint routes via configured service URLs and does not
   deploy a registry.
-- A media worker is not needed for the current direct upload and playback
-  flow. Transcoding, adaptive bitrate packaging, thumbnails, moderation, or
-  asynchronous media processing would be separate future capabilities.
+- The thumbnail worker handles asynchronous thumbnail extraction and
+  processing; full video transcoding and adaptive-bitrate packaging are not
+  currently part of that workflow.
+- Moderation and comment likes are implemented, but live database migration,
+  cross-service deployment, and real-device UI checks must be completed before
+  treating their deployment as verified.
 
 ## Suggested closing summary
 

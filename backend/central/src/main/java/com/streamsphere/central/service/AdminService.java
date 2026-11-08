@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.streamsphere.central.dto.response.AdminChannelDTO;
@@ -74,15 +75,39 @@ public class AdminService {
         return channelRepo.findAll(PageRequest.of(page, size)).map(AdminService::toAdminChannelDTO);
     }
 
-    public Page<com.streamsphere.central.dto.response.AdminReportDTO> getReports(int page, int size) {
-        return videoReportRepo.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size))
+    public Page<com.streamsphere.central.dto.response.AdminReportDTO> getReports(int page, int size, String status, String search) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("Invalid report pagination parameters.");
+        }
+        String normalizedStatus = status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)
+                ? null
+                : status.trim().toUpperCase();
+        if (normalizedStatus != null
+                && !java.util.Set.of("PENDING", "REVIEWED", "RESOLVED", "REJECTED", "DISMISSED").contains(normalizedStatus)) {
+            throw new IllegalArgumentException("Unsupported report status: " + status);
+        }
+        String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
+        Integer reportId = null;
+        if (normalizedSearch != null && normalizedSearch.matches("\\d+")) {
+            try {
+                reportId = Integer.valueOf(normalizedSearch);
+            } catch (NumberFormatException ignored) {
+                reportId = null;
+            }
+        }
+        return videoReportRepo.searchReports(normalizedStatus, normalizedSearch, reportId,
+                        PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .map(AdminService::toAdminReportDTO);
     }
 
     public void updateReportStatus(int reportId, String status) {
+        String normalizedStatus = status == null ? "" : status.trim().toUpperCase();
+        if (!java.util.Set.of("PENDING", "REVIEWED", "RESOLVED", "REJECTED").contains(normalizedStatus)) {
+            throw new IllegalArgumentException("Unsupported report status: " + status);
+        }
         com.streamsphere.central.entity.VideoReport report = videoReportRepo.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found"));
-        report.setStatus(status);
+        report.setStatus(normalizedStatus);
         videoReportRepo.save(report);
     }
 
@@ -130,9 +155,13 @@ public class AdminService {
                 r.getId(),
                 r.getVideo().getId(),
                 r.getVideo().getName(),
+                r.getVideo().getVideoLink(),
+                r.getVideo().getThumbnailLink(),
+                r.getUser().getName(),
                 r.getUser().getEmail(),
                 r.getReason(),
-                r.getStatus(),
+                r.getDescription(),
+                "DISMISSED".equalsIgnoreCase(r.getStatus()) ? "REJECTED" : r.getStatus(),
                 r.getCreatedAt()
         );
     }

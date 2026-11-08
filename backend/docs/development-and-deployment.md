@@ -171,6 +171,15 @@ configuration checks plus frontend tests/build on pushes to `main`/`master`
 and pull requests. CI is validation, not proof that Render or Vercel has
 deployed a revision.
 
+Central's current moderation and comment-like schema changes are managed by
+Flyway migrations `V9__extend_video_report_details.sql` (optional report
+description and status/creation index) and
+`V10__add_comment_likes.sql` (comment-like table, uniqueness constraint, and
+lookup index). Deploy the Central service with Flyway enabled and verify both
+migrations are recorded in `flyway_schema_history` before testing these
+features. Do not edit or renumber a migration that has already run in a shared
+environment; add a new forward migration instead.
+
 ## Production deployment overview
 
 - `render.yaml` provisions the backend web services, PostgreSQL, and Redis.
@@ -219,6 +228,13 @@ deployed a revision.
    file remains on the host.
 9. Trigger a test notification only with safe test email and inspect RabbitMQ,
    Notification logs, and mail provider delivery.
+10. Submit a report as a signed-in test user; confirm its persisted ID/status
+    are returned and the report appears in the Admin report list. Change its
+    status, reload the list, and verify the persisted status.
+11. Add a comment and toggle its like as an authenticated user. Refresh the
+    comments and verify the like count and viewer state are consistent. Confirm
+    unauthenticated writes are rejected and a user cannot act as another
+    user's ID.
 
 ## Inspecting PostgreSQL metadata
 

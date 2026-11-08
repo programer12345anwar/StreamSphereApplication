@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface CommentRepo extends JpaRepository<Comment, UUID> {
     Page<Comment> findByVideoIdAndParentCommentIsNullOrderByCreatedAtDesc(String videoId, Pageable pageable);
     Page<Comment> findByParentCommentIdOrderByCreatedAtAsc(UUID parentId, Pageable pageable);
+    long countByVideoIdAndParentCommentIsNull(String videoId);
 }

@@ -8,4 +8,6 @@ public record CommentResponseDTO(
         String text,
         String authorName,
         LocalDateTime createdAt,
-        UUID parentId) {}
+        UUID parentId,
+        long likeCount,
+        boolean likedByCurrentUser) {}

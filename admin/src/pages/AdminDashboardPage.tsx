@@ -70,10 +70,10 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Overview</h1>
+    <div className="min-w-0 space-y-5 sm:space-y-6">
+      <div className="mb-6 flex min-w-0 flex-wrap items-center justify-between gap-3 sm:mb-8">
+        <div className="min-w-0">
+          <h1 className="break-words bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">Overview</h1>
           <p className="text-slate-400 mt-1">Real-time statistics across the StreamSphere network</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full text-sm border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
@@ -82,33 +82,33 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         {metrics.map((m) => (
-          <div key={m.label} className="relative overflow-hidden bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10">
-            <div className="flex items-center gap-4 relative z-10">
+          <div key={m.label} className="relative min-w-0 overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 backdrop-blur-xl transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 sm:p-6">
+            <div className="relative z-10 flex min-w-0 items-center gap-3 sm:gap-4">
               <div className={`p-3 rounded-xl ${m.bg}`}>
                 <m.icon className={`w-6 h-6 ${m.color}`} />
               </div>
               <div>
                 <div className="text-sm font-medium text-slate-400">{m.label}</div>
-                <div className="text-3xl font-bold text-slate-100">{m.value?.toLocaleString() ?? 0}</div>
+                <div className="break-all text-2xl font-bold text-slate-100 sm:text-3xl">{m.value?.toLocaleString() ?? 0}</div>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+      <div className="mt-6 min-w-0 overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 backdrop-blur-xl sm:mt-8 sm:p-6">
+        <h2 className="mb-4 flex min-w-0 items-center gap-2 text-lg font-semibold sm:mb-6 sm:text-xl">
           <Activity className="w-5 h-5 text-indigo-400" /> Live Traffic Activity
         </h2>
-        <div className="h-80 w-full">
+        <div className="h-64 min-w-0 w-full sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={history}>
+            <LineChart data={history} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="time" stroke="#94a3b8" fontSize={12} />
-              <YAxis yAxisId="left" stroke="#94a3b8" fontSize={12} />
-              <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={12} />
+              <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickMargin={6} minTickGap={20} />
+              <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} width={34} />
+              <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} width={34} />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#1e293b", borderColor: "#334155", borderRadius: "8px" }}
                 itemStyle={{ color: "#e2e8f0" }}
@@ -120,42 +120,22 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+      <div className="mt-5 grid min-w-0 grid-cols-1 gap-4 sm:mt-6 sm:gap-6">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 backdrop-blur-xl sm:p-6">
+          <h2 className="mb-4 flex min-w-0 items-center gap-2 text-lg font-semibold sm:mb-6 sm:text-xl">
             <Users className="w-5 h-5 text-blue-400" /> Platform Growth
           </h2>
-          <div className="h-64 w-full">
+          <div className="h-56 min-w-0 w-full sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={history}>
+              <LineChart data={history} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="time" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} />
+                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickMargin={6} minTickGap={20} />
+                <YAxis stroke="#94a3b8" fontSize={10} width={34} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: "#1e293b", borderColor: "#334155", borderRadius: "8px" }}
                 />
                 <Line type="stepAfter" dataKey="totalUsers" stroke="#3b82f6" strokeWidth={3} dot={false} name="Users" />
                 <Line type="stepAfter" dataKey="totalChannels" stroke="#10b981" strokeWidth={3} dot={false} name="Channels" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <Video className="w-5 h-5 text-purple-400" /> Content Distribution
-          </h2>
-          <div className="flex items-center justify-center h-64 w-full text-slate-400">
-            {/* Using a pseudo-bar chart representation out of the Live data since we don't have categories */}
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="time" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: "#1e293b", borderColor: "#334155", borderRadius: "8px" }}
-                />
-                <Line type="monotone" dataKey="totalVideos" stroke="#8b5cf6" strokeWidth={3} fill="#8b5cf6" dot={false} name="Videos Uploaded" />
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -49,6 +49,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(Map.of("error", ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidRequest(IllegalArgumentException ex) {
+        return new ResponseEntity<>(Map.of("error", ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(ChannelNotFound.class)
     public ResponseEntity<Map<String, String>> handleChannelNotFound(ChannelNotFound ex) {
         return new ResponseEntity<>(Map.of("error", ex.getMessage()), HttpStatus.NOT_FOUND);
@@ -60,4 +65,3 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(Map.of("error", "An unexpected error occurred"), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
-

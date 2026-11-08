@@ -6,6 +6,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Column;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,8 @@ public class VideoReport {
     private Video video;
 
     private String reason;
-    private String status; // PENDING, RESOLVED, DISMISSED
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    private String status;
     private LocalDateTime createdAt;
 }

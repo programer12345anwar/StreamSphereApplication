@@ -76,6 +76,10 @@ flowchart LR
 - Issues and validates JWTs. Passwords are encoded with BCrypt.
 - Provides feed, search, trending, shorts, subscription, admin, and channel
   APIs.
+- Owns report submission and moderation, including the reporter, reason,
+  optional description, status, and admin-facing report details.
+- Persists comment likes and returns per-comment like counts and the current
+  viewer's like state with comment pages.
 - Uses Redis for selected cache-aside reads, with PostgreSQL remaining the
   source of truth. Cache entries are evicted on relevant video writes.
 - Publishes asynchronous email notifications and durable thumbnail requests
@@ -229,6 +233,29 @@ These paths are related to user-visible notifications but are not the same
 queue or delivery guarantee. More detail is in
 [Notification events](../events/notification-events.md).
 
+### Reports, comments, and Shorts engagement
+
+1. A signed-in user submits a video report through Central. Central derives
+   the reporter from the authenticated JWT principal rather than accepting a
+   caller-selected reporter ID, validates the report, and persists it with
+   `PENDING` status.
+2. Admin clients use role-protected Central endpoints to search and filter
+   paginated reports, inspect video/reporter/reason details, and update a
+   report to `PENDING`, `REVIEWED`, `RESOLVED`, or `REJECTED`. Legacy
+   `DISMISSED` reports are exposed as `REJECTED`. The Admin UI supports
+   responsive report cards/details and a mobile navigation drawer.
+3. Comment likes are stored in Central's `comment_likes` table. Comment
+   listings include like counts and the requesting viewer's like state;
+   authenticated users can toggle their own likes.
+4. The Shorts experience is a frontend presentation of Central's existing
+   public Shorts feed and engagement APIs. The client uses a full-screen
+   snap-scrolling feed and activates playback for the visible item; this does
+   not introduce a separate Shorts service or event pipeline. The frontend
+   navigation and watch experience also adapt to mobile viewport sizes.
+
+Report submission, report moderation, and comment likes are synchronous
+Central REST/database operations. They do not publish RabbitMQ events.
+
 ## Persistence and domain model
 
 Central's PostgreSQL schema includes these principal entities:
@@ -242,7 +269,8 @@ Central's PostgreSQL schema includes these principal entities:
 | `VideoLike` / `Comment` | Video engagement and threaded comments |
 | `UserWatchHistory` | Per-user watched-video and resume data |
 | `PlayList` | Channel playlist and its videos |
-| `VideoReport` | User-submitted moderation report |
+| `VideoReport` | User-submitted moderation report, optional description, and status |
+| `CommentLike` | Unique user/comment like relation with cascade cleanup |
 | `InAppNotification` | Persisted in-app notification and read state |
 
 Flyway SQL files live in

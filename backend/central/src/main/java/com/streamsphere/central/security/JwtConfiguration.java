@@ -47,6 +47,12 @@ public class JwtConfiguration {
                                 "/actuator/health",
                                 "/actuator/health/**"
                         ).permitAll()
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/api/v1/central/engagement/video/*/comments",
+                                "/api/v1/central/engagement/video/*/engagement",
+                                "/api/v1/central/engagement/comment/*/replies"
+                        ).permitAll()
                         // add array separately
                         .requestMatchers(FREE_RESOURCE_URLS).permitAll()
                         .anyRequest().authenticated()
@@ -61,4 +67,3 @@ public class JwtConfiguration {
         return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 }
-

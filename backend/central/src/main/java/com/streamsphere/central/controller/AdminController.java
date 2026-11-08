@@ -79,8 +79,10 @@ public class AdminController {
     @GetMapping("/reports")
     @PreAuthorize("hasRole('ADMIN')")
     public Page<com.streamsphere.central.dto.response.AdminReportDTO> reports(@RequestParam(name="page", defaultValue="0") int page,
-                                                                              @RequestParam(name="size", defaultValue="20") int size) {
-        return adminService.getReports(page, size);
+                                                                              @RequestParam(name="size", defaultValue="20") int size,
+                                                                              @RequestParam(name="status", required=false) String status,
+                                                                              @RequestParam(name="search", required=false) String search) {
+        return adminService.getReports(page, size, status, search);
     }
 
     @PutMapping("/reports/{id}/status")
@@ -91,4 +93,3 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 }
-

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import CommentsSection from "@/components/CommentsSection";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getMyChannel, getResumeTime, updateResumeTime, isLegacyLocalMediaUrl, reportVideo } from "@/lib/api";
+import { checkSubscriptionStatus, subscribeToChannel, unsubscribeFromChannel, toggleLikeVideo, recordVideoView, getVideoById, getVideoFeed, getMyChannel, getResumeTime, updateResumeTime, isLegacyLocalMediaUrl } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import {
   ArrowUpDown,
@@ -19,6 +19,7 @@ import {
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PlaylistModal } from "@/components/PlaylistModal";
+import { ReportVideoDialog } from "@/components/ReportVideoDialog";
 import { Input } from "@/components/ui/input";
 
 const WatchPage = () => {
@@ -38,6 +39,7 @@ const WatchPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [initialResumeTime, setInitialResumeTime] = useState(0);
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [queueCollapsed, setQueueCollapsed] = useState(false);
   const [queueShuffled, setQueueShuffled] = useState(false);
@@ -397,12 +399,7 @@ const WatchPage = () => {
                       toast({ title: "Please log in to report videos", variant: "destructive" });
                       return;
                     }
-                    const reason = window.prompt("Reason for reporting this video:");
-                    if (reason?.trim()) {
-                      reportVideo(user.id, videoId, reason.trim())
-                        .then(() => toast({ title: "Video reported successfully" }))
-                        .catch(() => toast({ title: "Failed to report video", variant: "destructive" }));
-                    }
+                    setIsReportDialogOpen(true);
                   }}
                 >
                   <Flag className="h-4 w-4" />
@@ -604,6 +601,13 @@ const WatchPage = () => {
           channelId={String(video?.channelId ?? "")}
           isOpen={isPlaylistModalOpen}
           onClose={() => setIsPlaylistModalOpen(false)}
+        />
+      )}
+      {videoId && (
+        <ReportVideoDialog
+          videoId={videoId}
+          open={isReportDialogOpen}
+          onOpenChange={setIsReportDialogOpen}
         />
       )}
     </Layout>

@@ -28,6 +28,10 @@ ID and ignores duplicate/stale completions. A successful result records
 `duration_seconds`, then publishes the video. A media replacement queues a new
 event ID, preventing an older worker result from overwriting newer metadata.
 
+Report submission/moderation and comment-like changes are currently synchronous
+Central REST/database operations. They do not use RabbitMQ or add notification
+events.
+
 The request and result records use the same JSON field contract in Central and
 Video. The default exchange is `streamsphere-video-events`; the request queue
 is `streamsphere-video-thumbnail-requests` with routing key

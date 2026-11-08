@@ -22,6 +22,9 @@ base URL for application requests. Configure the Gateway's
 - Protected routes expect `Authorization: Bearer <token>`.
 - Video upload authorization and completion require an authenticated channel
   owner.
+- Report submission requires authentication; Central takes the reporter
+  identity from the JWT principal. Comment likes also require authentication
+  and verify any supplied user ID against that principal.
 - Admin routes require a valid token with the `ADMIN` role.
 - Public feed and playback routes are intentionally readable without login.
 - A number of current user-specific APIs still accept `userId` as a query
@@ -182,8 +185,21 @@ URL; it does not contain the video bytes.
 | `POST` | `/video/{videoId}/comment?userId={uuid}` | Add a comment; JSON includes `text`, optional `parentId` |
 | `GET` | `/video/{videoId}/comments?page=0&size=20` | Paginated comments |
 | `GET` | `/comment/{parentId}/replies?page=0&size=20` | Paginated replies |
+| `POST` | `/comment/{commentId}/like[?userId={uuid}]` | Toggle the authenticated user's like on a comment; optional `userId` must match the authenticated user |
 | `POST` | `/video/{videoId}/view` | Record a view |
-| `POST` | `/video/{videoId}/report?userId={uuid}` | Submit a report; JSON includes `reason` |
+| `GET` | `/video/{videoId}/engagement` | Read video like/comment counts and the current viewer's like state |
+| `POST` | `/video/{videoId}/report` | Submit a report; JSON includes required `reason` and optional `description`; reporter is derived from the JWT |
+
+Comment and reply response objects include `likeCount` and
+`likedByCurrentUser`. The comment-like endpoint returns the updated like count
+and whether the authenticated user has liked the comment. Comment likes are
+stored in Central's database; toggling a like does not publish a RabbitMQ
+event.
+
+Report submission returns the persisted report `id`, `status`, and `createdAt`.
+New reports start as `PENDING`. The submission endpoint does not accept a
+reporter `userId`; sending a different caller-supplied identity is not part of
+the API contract.
 
 ### Library: `/api/v1/central/library`
 
@@ -223,8 +239,18 @@ enforced by Central.
 | `GET` | `/videos?page=0&size=20` | Paginated videos |
 | `DELETE` | `/videos/{id}` | Delete a video |
 | `GET` | `/channels?page=0&size=20` | Paginated channels |
-| `GET` | `/reports?page=0&size=20` | Paginated reports |
+| `GET` | `/reports?page=0&size=20&status=PENDING&search=...` | Paginated reports, newest first; optional status and search |
 | `PUT` | `/reports/{id}/status?status=...` | Update report status |
+
+Report search matches the report ID (when numeric), video title, reason, and
+description. Page size is limited to 100. Filters accept `PENDING`, `REVIEWED`,
+`RESOLVED`, `REJECTED`, and legacy `DISMISSED`; legacy dismissed records are
+returned with status `REJECTED`. Status updates accept `PENDING`, `REVIEWED`,
+`RESOLVED`, or `REJECTED`.
+
+Admin report records include the video ID/title/link/thumbnail, reporter name
+and email, reason, optional description, status, and creation time. These
+endpoints require the `ADMIN` role on the server.
 
 ## OpenAPI / Swagger
 
